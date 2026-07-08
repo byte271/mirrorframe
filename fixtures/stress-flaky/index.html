@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- Mirrorframe stress fixture: FLAKY ASSETS. Self-authored. A web font that
+     404s, a background image that 404s, a broken <img>, and an image request
+     to a blackholed address (10.255.255.1) that hangs forever, so the page's
+     network NEVER goes idle. Expected behavior: navigation falls back from
+     networkidle to domcontentloaded (recorded, bounded), font/image failures
+     degrade identically in original and reconstruction, and the broken <img>
+     region is skipped as out-of-scope-medium and masked. -->
+<head>
+<meta charset="utf-8">
+<title>Driftgale — Degraded Asset Report</title>
+<style>
+  @font-face { font-family: 'GhostGrotesk'; src: url('ghost-grotesk.woff2') format('woff2'); }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'GhostGrotesk', 'Courier New', monospace; background: #fbf7f0; color: #33291d; }
+  header { padding: 30px 50px; background: #33291d; color: #fbf7f0; }
+  header h1 { font-size: 22px; letter-spacing: 4px; }
+  section { padding: 34px 50px; }
+  h2 { font-size: 16px; margin-bottom: 12px; color: #7a5c33; }
+  p { max-width: 620px; font-size: 13px; line-height: 1.75; color: #5c4c37; margin-bottom: 14px; }
+  .heropanel { background-image: url('missing-texture.png'); background-color: #e8ddc9; padding: 26px; border-radius: 8px; max-width: 620px; }
+  .heropanel p { color: #4a3c28; margin-bottom: 0; }
+  img.broken { width: 320px; height: 140px; border: 1px dashed #b09a76; }
+  footer { padding: 24px 50px; font-size: 11px; color: #8a765a; }
+</style>
+</head>
+<body>
+<header><h1>DRIFTGALE</h1></header>
+
+<section>
+  <h2>Missing web font</h2>
+  <p>The declared GhostGrotesk font 404s; rendering falls through to Courier New identically on both sides of the diff.</p>
+</section>
+
+<section>
+  <h2>Missing background texture</h2>
+  <div class="heropanel"><p>This panel's background image 404s; the fallback background-color is what actually renders — and what must be recovered.</p></div>
+</section>
+
+<section>
+  <h2>Broken and hung images</h2>
+  <p>Below: an image that 404s and an image request to a blackholed address that never completes, keeping the network permanently busy.</p>
+  <img class="broken" src="missing-photo.png" alt="broken asset">
+  <img class="broken" src="http://10.255.255.1/never-loads.png" alt="hung asset">
+</section>
+
+<footer>Driftgale is a self-authored Mirrorframe stress fixture. Every referenced asset is deliberately absent or unreachable.</footer>
+</body>
+</html>

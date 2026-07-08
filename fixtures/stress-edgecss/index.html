@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- Mirrorframe stress fixture: EDGE-CASE CSS. Self-authored. Container
+     queries, :has(), clamp()/min()/vmin/ch units, custom-property chains
+     through calc(), and a 10-level nested cascade. Capture reads COMPUTED
+     values, so all of this must resolve and verify without special-casing. -->
+<head>
+<meta charset="utf-8">
+<title>Oddline — Edge CSS Ledger</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --step: 6px; --ink: #1d2430; --paper: #f2f5f9; --accent: rgb(196 92 60); }
+  body { font-family: Verdana, sans-serif; background: var(--paper); color: var(--ink); }
+  header { padding: clamp(18px, 4vmin, 44px) calc(var(--step) * 8); background: var(--ink); color: var(--paper); }
+  header h1 { font-size: clamp(20px, 2.4vmin, 30px); letter-spacing: 0.35ch; }
+  section { padding: calc(var(--step) * 6) calc(var(--step) * 8); }
+  h2 { font-size: min(19px, 4vmin); margin-bottom: calc(var(--step) * 2); }
+  p.note { max-width: 62ch; font-size: 13px; line-height: 1.75; color: #47536a; margin-bottom: calc(var(--step) * 3); }
+
+  /* container query: card layout flips on container width */
+  .cardbox { container-type: inline-size; max-width: 720px; }
+  .card { background: #fff; border: 1px solid #ccd6e4; border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+  @container (min-width: 500px) { .card { flex-direction: row; align-items: center; gap: 24px; } }
+  .card h3 { font-size: 15px; color: var(--accent); }
+  .card p { font-size: 12.5px; line-height: 1.6; color: #5a677e; }
+
+  /* :has() driven styling */
+  .row:has(.warn) { background: #fbeee7; border-left: 4px solid var(--accent); }
+  .row { padding: 12px 16px; margin-bottom: 8px; display: flex; gap: 14px; align-items: baseline; }
+  .row span.tagchip { font-size: 11px; background: #dfe7f2; padding: 3px 9px; border-radius: 10px; }
+  .row span.warn { background: var(--accent); color: #fff; }
+
+  /* deep cascade: each level tightens padding and shifts color */
+  .d1 { padding: 20px; background: #e7edf5; } .d1 p { font-size: 12px; }
+  .d2 { padding: 18px; background: #dce4ef; }
+  .d3 { padding: 16px; background: #d1dbe9; }
+  .d4 { padding: 14px; background: #c6d2e3; }
+  .d5 { padding: 12px; background: #bbc9dd; }
+  .d6 { padding: 10px; background: #b0c0d7; }
+  .d7 { padding: 9px;  background: #a5b7d1; }
+  .d8 { padding: 8px;  background: #9aaecb; }
+  .d9 { padding: 7px;  background: #8fa5c5; }
+  .d10 { padding: 6px; background: #849cbf; color: #101725; font-style: italic; }
+  footer { padding: 24px calc(var(--step) * 8); font-size: 11px; color: #7c8aa3; }
+</style>
+</head>
+<body>
+<header><h1>ODDLINE</h1></header>
+
+<section>
+  <h2>Container-queried card</h2>
+  <p class="note">The card row-flips under a container query. Computed styles at capture time carry the resolved layout, not the query.</p>
+  <div class="cardbox">
+    <div class="card">
+      <h3>Ledger entry 44-C</h3>
+      <p>Recorded under a 720px inline-size container, so the row variant applies. clamp(), min(), vmin and ch units above must all resolve to stable pixel values.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>:has() rows</h2>
+  <p class="note">The middle row carries a warn chip; :has() restyles the whole row. The pipeline never needs to understand :has() — only its resolved consequences.</p>
+  <div class="row"><span class="tagchip">routine</span><p>Baseline entry, unstyled by :has().</p></div>
+  <div class="row"><span class="tagchip warn">warn</span><p>This row is selected by .row:has(.warn) and tinted.</p></div>
+  <div class="row"><span class="tagchip">routine</span><p>Another baseline entry.</p></div>
+</section>
+
+<section>
+  <h2>Ten-level cascade</h2>
+  <div class="d1"><div class="d2"><div class="d3"><div class="d4"><div class="d5"><div class="d6"><div class="d7"><div class="d8"><div class="d9"><div class="d10">
+    <p>Bottom of a ten-level nested cascade: every ancestor contributes padding and background.</p>
+  </div></div></div></div></div></div></div></div></div></div>
+</section>
+
+<footer>Oddline is a self-authored Mirrorframe stress fixture. No external assets.</footer>
+</body>
+</html>

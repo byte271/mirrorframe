@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signalhut plans — Mirrorframe tabs fixture</title>
+<style>
+  :root {
+    --ink: #202028;
+    --muted: #6d6d7a;
+    --bg: #f4f4f8;
+    --card: #ffffff;
+    --accent: #4a4de7;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Verdana, Geneva, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 64px 24px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 30px; margin-bottom: 8px; }
+  .lede { color: var(--muted); font-size: 15px; margin-bottom: 32px; }
+  .tabbar { display: flex; gap: 8px; margin-bottom: 0; }
+  .tab {
+    padding: 12px 22px;
+    border: none;
+    border-radius: 10px 10px 0 0;
+    background: #e4e4ee;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.active {
+    background: var(--card);
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .panel {
+    display: none;
+    background: var(--card);
+    border-radius: 0 12px 12px 12px;
+    padding: 28px;
+    min-height: 150px;
+  }
+  .panel.active { display: block; }
+  .panel h2 { font-size: 19px; margin-bottom: 10px; }
+  .panel p { color: var(--muted); font-size: 14px; line-height: 1.8; }
+  .price { color: var(--accent); font-size: 26px; font-weight: 700; margin-top: 14px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Signalhut plans</h1>
+    <p class="lede">Pricing for the fictional Signalhut status-page service. Built as a Mirrorframe tabs fixture.</p>
+
+    <div class="tabbar">
+      <button class="tab active">Hobby</button>
+      <button class="tab">Team</button>
+      <button class="tab">Fleet</button>
+    </div>
+
+    <div class="panel active">
+      <h2>Hobby</h2>
+      <p>One status page, five monitors, and email alerts. Enough to keep a side project honest without paying for headroom you will not use.</p>
+      <div class="price">$0 / month</div>
+    </div>
+    <div class="panel">
+      <h2>Team</h2>
+      <p>Ten status pages, a hundred monitors, on-call rotations, and webhook alerts into whatever chat tool your team argues in.</p>
+      <div class="price">$19 / month</div>
+    </div>
+    <div class="panel">
+      <h2>Fleet</h2>
+      <p>Unlimited pages and monitors, audit logs, SSO, and a dedicated ingest region. For companies whose customers notice a bad minute.</p>
+      <div class="price">$79 / month</div>
+    </div>
+  </div>
+
+  <script>
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+    var panels = Array.prototype.slice.call(document.querySelectorAll('.panel'));
+    tabs.forEach(function (tab, i) {
+      tab.addEventListener('click', function () {
+        tabs.forEach(function (t) { t.classList.remove('active'); });
+        panels.forEach(function (p) { p.classList.remove('active'); });
+        tab.classList.add('active');
+        panels[i].classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

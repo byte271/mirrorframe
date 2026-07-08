@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ledgerline FAQ — Mirrorframe accordion fixture</title>
+<style>
+  :root {
+    --ink: #1c2430;
+    --muted: #5c6774;
+    --paper: #fbfaf7;
+    --line: #e3ded4;
+    --accent: #2f6f5e;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: var(--paper);
+    color: var(--ink);
+    padding: 64px 24px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 34px; margin-bottom: 12px; }
+  .lede { color: var(--muted); font-size: 18px; margin-bottom: 40px; }
+  .acc-item {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .acc-head {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 20px;
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    font-size: 17px;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+  }
+  .acc-head:hover { color: var(--accent); }
+  .acc-chev {
+    color: var(--accent);
+    font-size: 14px;
+    transition: transform 0.25s ease;
+  }
+  .acc-item.open .acc-chev { transform: rotate(180deg); }
+  .acc-body {
+    display: none;
+    padding: 0 20px 18px 20px;
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  .acc-item.open .acc-body { display: block; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Ledgerline FAQ</h1>
+    <p class="lede">Answers about the fictional Ledgerline bookkeeping tool. Built as a Mirrorframe accordion fixture.</p>
+
+    <div class="acc-item open">
+      <button class="acc-head">Does Ledgerline work offline?<span class="acc-chev">▾</span></button>
+      <div class="acc-body">Yes. Entries are stored locally first and reconciled when a connection returns, so a spotty train ride never costs you a receipt.</div>
+    </div>
+
+    <div class="acc-item">
+      <button class="acc-head">Can I import from a spreadsheet?<span class="acc-chev">▾</span></button>
+      <div class="acc-body">CSV import maps columns interactively and remembers your mapping for next time. Nothing is written until you confirm the preview.</div>
+    </div>
+
+    <div class="acc-item">
+      <button class="acc-head">How are amounts rounded?<span class="acc-chev">▾</span></button>
+      <div class="acc-body">All arithmetic is done in integer minor units. Display rounding happens only at render time and never feeds back into stored values.</div>
+    </div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.acc-head').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        btn.closest('.acc-item').classList.toggle('open');
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northlight — Test Landing Page</title>
+<style>
+  :root {
+    --ink: #14181f;
+    --paper: #f7f5f0;
+    --accent: #e0602f;
+    --accent-dark: #b34a22;
+    --muted: #6b7280;
+    --card: #ffffff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 64px;
+  }
+  .logo { font-size: 20px; font-weight: bold; letter-spacing: 2px; }
+  nav a {
+    margin-left: 32px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 15px;
+    transition: color 0.2s ease;
+  }
+  nav a:hover { color: var(--accent); }
+  .hero {
+    padding: 96px 64px 80px;
+    max-width: 880px;
+  }
+  .hero h1 {
+    font-size: 56px;
+    line-height: 1.1;
+    margin-bottom: 24px;
+  }
+  .hero p {
+    font-size: 20px;
+    color: var(--muted);
+    max-width: 560px;
+    margin-bottom: 40px;
+  }
+  .cta {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    padding: 14px 36px;
+    font-size: 17px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.25s ease, transform 0.25s ease;
+  }
+  .cta:hover {
+    background: var(--accent-dark);
+    transform: translateY(-3px);
+  }
+  .badge {
+    display: inline-block;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 4px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    margin-bottom: 24px;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+  .features {
+    display: flex;
+    gap: 24px;
+    padding: 48px 64px 96px;
+  }
+  .card {
+    flex: 1;
+    background: var(--card);
+    border-radius: 10px;
+    padding: 32px 28px;
+    box-shadow: 0 2px 8px rgba(20, 24, 31, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 28px rgba(20, 24, 31, 0.16);
+  }
+  .card h3 { font-size: 22px; margin-bottom: 12px; }
+  .card p { font-size: 15px; color: var(--muted); }
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  .quote {
+    padding: 80px 64px;
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .quote blockquote { font-size: 28px; max-width: 720px; font-style: italic; }
+  .quote cite { display: block; margin-top: 20px; font-size: 15px; color: #9aa3af; font-style: normal; }
+  footer {
+    padding: 40px 64px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo">NORTHLIGHT</div>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#story">Story</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <span class="badge">Now in public beta</span>
+    <h1>Field notes for people who build things.</h1>
+    <p>Northlight is a quiet workspace for engineers and writers: notes, sketches, and long-form thinking, all in one place.</p>
+    <button class="cta">Start writing</button>
+  </section>
+
+  <section class="features" id="features">
+    <div class="card reveal">
+      <h3>Drafts that breathe</h3>
+      <p>Version-aware drafts with painless branching, so half-formed ideas never get overwritten.</p>
+    </div>
+    <div class="card reveal">
+      <h3>Sketch inline</h3>
+      <p>Drop diagrams straight into the text flow. No context switch, no export dance.</p>
+    </div>
+    <div class="card reveal">
+      <h3>Publish anywhere</h3>
+      <p>One click to a clean page, an RSS feed, and a plain-text mirror for your future self.</p>
+    </div>
+  </section>
+
+  <section class="quote reveal" id="story">
+    <blockquote>“The best tool is the one that disappears while you think.”</blockquote>
+    <cite>— A satisfied field-note taker</cite>
+  </section>
+
+  <footer id="contact">© 2026 Northlight. A fictional product built as a Mirrorframe test target.</footer>
+
+  <script>
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) e.target.classList.add('visible');
+      }
+    }, { threshold: 0.2 });
+    document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+  </script>
+</body>
+</html>

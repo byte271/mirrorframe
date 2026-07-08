@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- Mirrorframe stress fixture: AUTOPLAY CAROUSEL. Self-authored. The slide
+     rotation is timer-driven — no click, hover, or scroll triggers it — so it
+     matches NONE of the recoverable patterns (reveal/toggle/exclusive/pair).
+     This fixture exists to prove the "unclassified, skipped, and reported"
+     path: the carousel nodes must be reported as skipped with reason
+     unclassified-behavior and masked from verification, while the static
+     remainder of the page verifies normally. It must NOT be learned as a new
+     behavior pattern. -->
+<head>
+<meta charset="utf-8">
+<title>Loopmere — Harbor Notices</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Palatino, serif; background: #101418; color: #e8edf2; }
+  header { padding: 30px 50px; border-bottom: 1px solid #232b33; }
+  header h1 { font-size: 22px; letter-spacing: 3px; color: #d9b96c; }
+  section { padding: 34px 50px; }
+  h2 { font-size: 16px; margin-bottom: 12px; color: #a8b4c0; }
+  p.copy { max-width: 600px; font-size: 13px; line-height: 1.75; color: #93a0ad; margin-bottom: 14px; }
+  .carousel { position: relative; width: 560px; height: 150px; }
+  .slide { position: absolute; top: 0; left: 0; width: 560px; height: 150px; padding: 22px;
+           border-radius: 8px; opacity: 0; }
+  .slide.current { opacity: 1; }
+  .slide h3 { font-size: 15px; margin-bottom: 8px; }
+  .slide p { font-size: 12.5px; line-height: 1.6; }
+  .s1 { background: #24313d; } .s2 { background: #3d2f24; } .s3 { background: #2b3d24; }
+  footer { padding: 24px 50px; font-size: 11px; color: #5d6a77; border-top: 1px solid #232b33; }
+</style>
+</head>
+<body>
+<header><h1>LOOPMERE</h1></header>
+
+<section>
+  <h2>Rotating notices (autoplay — deliberately unclassifiable)</h2>
+  <p class="copy">The panel below advances on a timer with no user trigger. A pipeline restricted to input-driven state machines must report it as unclassified and exclude it — not guess.</p>
+  <div class="carousel">
+    <div class="slide s1 current"><h3>Notice 1 — Tide gate</h3><p>The tide gate closes at dusk. Vessels drawing more than two meters should clear the channel early.</p></div>
+    <div class="slide s2"><h3>Notice 2 — Mooring fees</h3><p>Winter mooring fees apply from the first of the month. Pay at the harbor office.</p></div>
+    <div class="slide s3"><h3>Notice 3 — Dredging</h3><p>Dredging works continue at the east quay. Expect intermittent closures.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Static harbor record</h2>
+  <p class="copy">This section does not move. It exists so the fixture also verifies the normal path alongside the skipped carousel.</p>
+  <p class="copy">Berths: 84 · Depth at chart datum: 3.2 m · VHF channel 37 · Harbormaster on duty 06:00–22:00.</p>
+</section>
+
+<footer>Loopmere is a self-authored Mirrorframe stress fixture. No external assets.</footer>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  let i = 0;
+  setInterval(() => {
+    slides[i].classList.remove('current');
+    i = (i + 1) % slides.length;
+    slides[i].classList.add('current');
+  }, 1200);
+</script>
+</body>
+</html>

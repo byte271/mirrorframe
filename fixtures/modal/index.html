@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quietbay — Mirrorframe modal fixture</title>
+<style>
+  :root {
+    --ink: #1a222c;
+    --muted: #647383;
+    --bg: #eef2f5;
+    --accent: #b3552d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Trebuchet MS', Tahoma, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 72px 24px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; text-align: center; }
+  h1 { font-size: 32px; margin-bottom: 12px; }
+  .lede { color: var(--muted); font-size: 16px; line-height: 1.7; margin-bottom: 32px; }
+  .open-modal {
+    padding: 14px 28px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+  }
+  .open-modal:hover { transform: scale(1.04); }
+  .overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(16, 22, 28, 0.55);
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+  }
+  .overlay.shown { display: flex; }
+  .dialog {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 32px;
+    max-width: 400px;
+    text-align: left;
+    box-shadow: 0 24px 60px rgba(16, 22, 28, 0.35);
+  }
+  .dialog h2 { font-size: 22px; margin-bottom: 10px; }
+  .dialog p { color: var(--muted); font-size: 14px; line-height: 1.7; margin-bottom: 22px; }
+  .close-modal {
+    padding: 10px 20px;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .close-modal:hover { background: var(--accent); color: #ffffff; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Quietbay</h1>
+    <p class="lede">A fictional focus timer for people who hate focus timers. Built as a Mirrorframe modal fixture.</p>
+    <button class="open-modal">See how it works</button>
+  </div>
+
+  <div class="overlay">
+    <div class="dialog">
+      <h2>How Quietbay works</h2>
+      <p>You pick a task, the tide comes in, and everything that is not your task drifts out of reach until the water recedes. No streaks, no guilt, no badges.</p>
+      <button class="close-modal">Back to shore</button>
+    </div>
+  </div>
+
+  <script>
+    var overlay = document.querySelector('.overlay');
+    document.querySelector('.open-modal').addEventListener('click', function () {
+      overlay.classList.add('shown');
+    });
+    document.querySelector('.close-modal').addEventListener('click', function () {
+      overlay.classList.remove('shown');
+    });
+  </script>
+</body>
+</html>

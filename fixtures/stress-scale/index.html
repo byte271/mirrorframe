@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- Mirrorframe stress fixture: SCALE. Self-authored. 120+ interactive
+     candidates (12 real class-toggle chips + 108 inert buttons) plus enough
+     static structure to stress node capture, the probe budget, and per-node
+     verification throughput. -->
+<head>
+<meta charset="utf-8">
+<title>Gridmarch — Component Inventory</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Georgia, serif; background: #f6f4ef; color: #23211c; }
+  header { background: #23211c; color: #f6f4ef; padding: 28px 48px; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 22px; letter-spacing: 2px; }
+  nav a { color: #cfc8b8; margin-left: 20px; font-size: 14px; text-decoration: none; }
+  section { padding: 36px 48px; }
+  h2 { font-size: 19px; margin-bottom: 14px; color: #4a4436; }
+  p.blurb { max-width: 640px; font-size: 14px; line-height: 1.7; color: #57503f; margin-bottom: 18px; }
+  .chipgrid { display: flex; flex-wrap: wrap; gap: 8px; max-width: 980px; }
+  button.chip { font-family: Georgia, serif; font-size: 12px; padding: 7px 13px; border: 1px solid #b9b09a;
+                background: #fffdf7; color: #57503f; border-radius: 14px; cursor: pointer; }
+  button.chip.sel { background: #2f5d3a; color: #f2f7ee; border: 1px solid #2f5d3a; }
+  ul.speclist { list-style: none; display: flex; flex-wrap: wrap; gap: 10px; max-width: 980px; }
+  ul.speclist li { background: #eee9dc; padding: 10px 14px; font-size: 12.5px; border-radius: 6px; color: #4a4436; }
+  footer { background: #23211c; color: #8f8877; padding: 24px 48px; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>GRIDMARCH</h1>
+  <nav><a href="#inv">Inventory</a> <a href="#tag">Tags</a> <a href="#spec">Specs</a></nav>
+</header>
+
+<section id="tag">
+  <h2>Filter tags (togglable)</h2>
+  <p class="blurb">Twelve of the chips below toggle a selected state; the rest are inert inventory chips. A capture pipeline has to probe every one of them within its budget without wedging.</p>
+  <div class="chipgrid" id="togglegrid"></div>
+</section>
+
+<section id="inv">
+  <h2>Inventory chips (inert)</h2>
+  <p class="blurb">One hundred and eight clickable-looking buttons that change nothing. They exist to burn probe time honestly.</p>
+  <div class="chipgrid" id="inertgrid"></div>
+</section>
+
+<section id="spec">
+  <h2>Specification lattice</h2>
+  <p class="blurb">Static bulk: enough tracked nodes to make per-node verification earn its keep.</p>
+  <ul class="speclist" id="specs"></ul>
+</section>
+
+<footer>Gridmarch is a self-authored Mirrorframe stress fixture. No external assets.</footer>
+
+<script>
+  const tg = document.getElementById('togglegrid');
+  for (let i = 1; i <= 12; i++) {
+    const b = document.createElement('button');
+    b.className = 'chip tgl';
+    b.textContent = 'tag-' + String(i).padStart(2, '0');
+    b.addEventListener('click', () => b.classList.toggle('sel'));
+    tg.appendChild(b);
+    tg.appendChild(document.createTextNode(' '));
+  }
+  const ig = document.getElementById('inertgrid');
+  for (let i = 1; i <= 108; i++) {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = 'unit-' + String(i).padStart(3, '0');
+    ig.appendChild(b);
+    ig.appendChild(document.createTextNode(' '));
+  }
+  const sp = document.getElementById('specs');
+  for (let i = 1; i <= 90; i++) {
+    const li = document.createElement('li');
+    li.textContent = 'spec item ' + String(i).padStart(2, '0') + ' — tolerance ±0.' + (i % 9 + 1);
+    sp.appendChild(li);
+  }
+</script>
+</body>
+</html>

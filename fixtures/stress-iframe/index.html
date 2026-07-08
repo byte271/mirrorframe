@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- Mirrorframe stress fixture: IFRAMES. Self-authored. One same-origin
+     iframe (accessible but an out-of-scope embedding medium) and one
+     sandboxed iframe (opaque origin — behaves exactly like cross-origin
+     content: contentDocument is inaccessible). Both must be detected,
+     skipped with the right fixed reason, and masked from verification —
+     never crashed on, never silently dropped. -->
+<head>
+<meta charset="utf-8">
+<title>Framegate — Embedded Content Ledger</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Trebuchet MS, sans-serif; background: #14181d; color: #dfe6ee; }
+  header { padding: 30px 52px; border-bottom: 1px solid #2a323c; }
+  header h1 { font-size: 21px; letter-spacing: 3px; color: #8fd0a8; }
+  section { padding: 34px 52px; }
+  h2 { font-size: 16px; margin-bottom: 12px; color: #aebccb; }
+  p { max-width: 600px; font-size: 13px; line-height: 1.7; color: #97a5b4; margin-bottom: 16px; }
+  iframe { width: 480px; height: 180px; border: 1px solid #2a323c; border-radius: 6px; background: #fff; }
+  footer { padding: 24px 52px; font-size: 11px; color: #5d6b7a; border-top: 1px solid #2a323c; }
+</style>
+</head>
+<body>
+<header><h1>FRAMEGATE</h1></header>
+
+<section>
+  <h2>Same-origin embed</h2>
+  <p>This iframe is same-origin and technically readable, but iframes are an embedding medium Mirrorframe does not reconstruct — expected skip reason: out-of-scope-medium, region masked.</p>
+  <iframe src="frame.html" title="same-origin embed"></iframe>
+</section>
+
+<section>
+  <h2>Origin-isolated embed</h2>
+  <p>This iframe is sandboxed without allow-same-origin, giving it an opaque origin: its document is exactly as inaccessible as a real cross-origin frame — expected skip reason: cross-origin-content, region masked.</p>
+  <iframe src="frame.html" sandbox title="origin-isolated embed"></iframe>
+</section>
+
+<footer>Framegate is a self-authored Mirrorframe stress fixture. Both frames serve local, self-authored content.</footer>
+</body>
+</html>
