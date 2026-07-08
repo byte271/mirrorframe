@@ -176,9 +176,25 @@ async function scrollThrough(page) {
   await page.waitForTimeout(300);
 }
 
+// Bounded visual settle: staggered reveals and lag-smoothed pointer effects
+// keep painting after the input stops; wait until two consecutive viewport
+// screenshots match before shooting ground-truth comparisons.
+async function settleShot(page, extraMs = 3000) {
+  let prev = await page.screenshot();
+  const t0 = Date.now();
+  while (Date.now() - t0 < extraMs) {
+    await page.waitForTimeout(300);
+    const next = await page.screenshot();
+    if (next.equals(prev)) return next;
+    prev = next;
+  }
+  return prev;
+}
+
 async function shoot(page, outDir, prefix) {
   await page.screenshot({ path: path.join(outDir, `${prefix}-fold.png`) });
   await scrollThrough(page);
+  await settleShot(page); // staggered reveal transitions must finish first
   // The original's fullPage shot is taken with tracked nodes frozen at their
   // settled scroll-0 values (see capture.js); the replay runtime holds the
   // same scroll-0 samples here, so both sides show the same defined state.
@@ -571,7 +587,7 @@ async function converge(genome, recon, outDir) {
         await page.evaluate((yy) => window.scrollTo(0, yy), y);
         await page.waitForTimeout(500);
         const reconShot = path.join(outDir, 'recon-' + s.shot);
-        await page.screenshot({ path: reconShot });
+        fs.writeFileSync(reconShot, await settleShot(page));
         // Mask rects are document-coordinate; shift into this viewport.
         const vMasks = masks.map(r => ({ ...r, y: r.y - s.scrollY }));
         const d = diffFiles(path.join(outDir, s.shot), reconShot,
@@ -586,6 +602,37 @@ async function converge(genome, recon, outDir) {
     } catch (e) {
       report.scrollStates.push({ similarity: null, status: 'fail',
                                  reason: REASONS.TIME_BUDGET_EXCEEDED });
+    }
+  }
+
+  // --- pointer-state verification: replay the capture-time pointer
+  //     checkpoints (real mouse moves) on the reconstruction and diff against
+  //     the ground-truth screenshots. Settle wait scales with the largest
+  //     recovered smoothing time constant. ---
+  report.pointerStates = [];
+  const pShots = genome.interaction.pointerShots || [];
+  if (pShots.length) {
+    const maxTau = Math.max(0,
+      ...(genome.interaction.pointerFields || []).map(f => f.tauMs || 0));
+    try {
+      await gotoBounded(page, reconUrl);
+      for (const s of pShots) {
+        await page.mouse.move(s.mx, s.my, { steps: 6 });
+        await page.waitForTimeout(Math.min(3000, Math.max(800, 5 * maxTau)));
+        const reconShot = path.join(outDir, 'recon-' + s.shot);
+        fs.writeFileSync(reconShot, await settleShot(page, 2000));
+        const d = diffFiles(path.join(outDir, s.shot), reconShot,
+                            path.join(outDir, 'diff-' + s.shot), masks,
+                            s.shotB ? path.join(outDir, s.shotB) : null);
+        report.pointerStates.push({
+          mx: s.mx, my: s.my,
+          similarity: d.similarity, timeVaryingPixels: d.timeVaryingPixels,
+          status: d.similarity >= STATE_PASS ? 'pass' : 'fail',
+        });
+      }
+    } catch (e) {
+      report.pointerStates.push({ similarity: null, status: 'fail',
+                                  reason: REASONS.TIME_BUDGET_EXCEEDED });
     }
   }
 
@@ -610,6 +657,10 @@ async function converge(genome, recon, outDir) {
     scrollStates: {
       pass: report.scrollStates.filter(s => s.status === 'pass').length,
       fail: report.scrollStates.filter(s => s.status === 'fail').length,
+    },
+    pointerStates: {
+      pass: report.pointerStates.filter(s => s.status === 'pass').length,
+      fail: report.pointerStates.filter(s => s.status === 'fail').length,
     },
     assets: {
       bundled: (genome.assets && genome.assets.count) || 0,

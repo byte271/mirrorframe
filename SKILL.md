@@ -52,7 +52,11 @@ The stages, in order (all automatic within `run`):
    state as ground truth (`state-*.png`). Assets (images, background-images, web
    fonts, video sources/posters) are downloaded and bundled locally; canvases are
    snapshotted as stills; a frame sampler records rAF-driven motion at every
-   animation frame for a bounded window (v0.2).
+   animation frame for a bounded window (v0.2). Reveal mutations are timestamped
+   for sequential-stagger recovery, and a virtual-mouse agent grid-samples the
+   pointer to recover mouse-movement choreography (parallax/tilt/magnetic) plus
+   each node's smoothing time constant, with ground-truth pointer checkpoints
+   (`original-pointer-*.png`) (v0.3).
 2. **Genome** → `<out>/genome.json`. Clusters tokens (color/type/spacing/radius/shadow),
    compiles motion DNA (animations/transitions) and interaction DNA (`interaction.
    behaviors[]` — recovered state machines typed `reveal`/`toggle`/`exclusive`/`pair`;
@@ -99,10 +103,13 @@ per-node level first; never report only the aggregate:
   the reconstruction with a real click and diffed against the original's ground-truth
   state screenshot; pass threshold 0.98. A state `fail` means the recovered behavior
   does not visually reproduce — report it.
+- **Per pointer state** (`pointerStates[]`, v0.3): each recovered pointer checkpoint is
+  replayed on the reconstruction with the same real mouse move (settle time scaled to
+  the largest recovered smoothing tau) and diffed; pass threshold 0.98.
 - **Aggregate** (`summary.similarity.fold` / `.full`): whole-viewport and full-page
   similarity. Report these *alongside* the per-node results, never instead of them.
 
-Success = zero `failed` nodes and zero failed states. `style-verified`,
+Success = zero `failed` nodes and zero failed interaction/scroll/pointer states. `style-verified`,
 `animated-unstable`, `hidden-at-capture`, `time-varying-replicated`, and
 `skipped` (with its reason) are
 acceptable statuses when explained. The whole-page outcome is in `summary.json`
@@ -125,7 +132,10 @@ plus stress fixtures `stress-scale` (230 nodes), `stress-edgecss` (container
 queries/`:has()`), `stress-iframe` (same-origin + sandboxed), `stress-flaky`
 (404/hung assets), `stress-carousel` (autoplay → skipped, not learned), and
 `stress-frames` (rAF inline-style motion + animated canvas → frame tracks +
-stills + time-varying masking; v0.2).
+stills + time-varying masking; v0.2), `stress-stagger` (CSS-delay + JS-timer
+sequential scroll reveals → per-element curve + stagger recovery; v0.3), and
+`stress-pointer` (parallax layers, 3D tilt card, smooth lerp follower → pointer
+field fitting + tau recovery + pointer-state replay; v0.3).
 
 ## When to consult references/
 

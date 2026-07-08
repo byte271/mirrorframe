@@ -6,9 +6,23 @@ verified; see `roadmap.md` for what comes next and what is research-level.
 - **No live Canvas / WebGL / WebGPU re-render.** Since v0.2 a `<canvas>`
   reconstructs as a pixel-true still of its captured frame (and `<video>` as a
   bundled playing element) — but the draw/shader program itself is not recovered.
-- **No physics, inertia, or spring recovery.** The v0.2 frame sampler replays
-  observed motion verbatim (bounded window, looped); it does not fit curves or
-  recover the generating simulation.
+- **No general physics, inertia, or spring recovery.** The v0.2 frame sampler
+  replays observed motion verbatim (bounded window, looped); it does not fit
+  curves or recover the generating simulation. The v0.3 pointer tier recovers
+  exactly one physics primitive — an exponential smoothing time constant per
+  pointer-driven node — not springs with overshoot or velocity-dependent drag.
+- **Pointer choreography is a planar matrix-component model.** v0.3 recovers
+  effects whose transform components respond linearly to pointer position
+  (parallax, tilt, magnetic offset, pointer-linked scale), plus per-node
+  exponential smoothing. Non-planar pointer physics (proximity-gated magnets
+  that engage only near the element, orbiting cursors, velocity-based skew)
+  is reported as `unclassified-behavior` (kind: pointer), never approximated.
+  Effects on properties other than `transform` (pointer-driven gradients,
+  clip-paths) are not yet fitted.
+- **Stagger recovery is observational.** Sequential-reveal offsets come from
+  mutation timestamps observed during the scroll sweep; elements that never
+  fired during capture fall back to the recovered median stagger step. Very
+  long staggers (>2s per element) are clamped.
 - **Behavior graphing covers class-toggle state machines driven by click, scroll,
   and hover** — no drags, keyboard interactions, inline-style-mutation machines
   (beyond frame-sampled visual props), or DOM insertion/removal state machines.

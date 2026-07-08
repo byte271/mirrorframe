@@ -1,6 +1,6 @@
 {
   "name": "mirrorframe",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Mirrorframe — capture a page, distill a Design Genome, recover its interaction state machines, reconstruct it in React, and verify per node + per state by visual diff.",
   "bin": { "mirrorframe": "scripts/mirrorframe.js" },
   "scripts": {

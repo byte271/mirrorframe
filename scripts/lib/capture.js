@@ -31,7 +31,10 @@ const DEFAULTS = {
   scrollCheckpoints: [0.25, 0.5, 0.75], // ground-truth screenshots for scroll-state verification
   maxScrollTracks: 1200, // per-node scroll-track cap (memory bound)
   hoverBudgetMs: 30000,  // hover-probe wall-clock budget
-  cursorSamples: 5,      // mousemove positions for cursor-follower recovery
+  cursorSamples: 9,      // mousemove positions (3x3 grid) for pointer-choreography recovery
+  cursorSettleMs: 500,   // per-position settle so lag-smoothed followers reach their target
+  pointerLagMs: 900,     // response-sampling window for smoothing time-constant recovery
+  pointerCheckpoints: [[0.3, 0.35], [0.75, 0.65]], // ground-truth pointer-state shots
   settleMaxMs: 15000,    // intro-animation settle budget before style extraction
   settleIntervalMs: 700, // gap between consecutive settle screenshots
   settleThreshold: 0.005,// max changed-pixel ratio between frames to call it settled
@@ -104,47 +107,135 @@ function deriveScrollTracks(samples, maxTracks, postSnap) {
   return tracks;
 }
 
-// Cursor-follower recovery: fit tx = ax*mx + bx, ty = ay*my + by over the
-// mouse samples; accept only strong linear fits. Nodes that move with the
-// mouse but do NOT fit linearly are unclassifiable pointer physics (springs,
-// lag) — recorded with the fixed unclassified reason, never guessed.
-function fitCursorFollowers(samples) {
+// Pointer-choreography recovery: parse the full transform matrix at every
+// sampled mouse position and fit EACH matrix component as a plane over the
+// pointer, v = a*mx + b*my + c (2-variable least squares). This recovers not
+// just linear followers (translate parallax) but tilt cards (rotateX/rotateY
+// components of matrix3d), pointer-driven scale, and magnetic offsets — any
+// choreography whose matrix components respond linearly to pointer position.
+// Nodes that move with the mouse but fit NO planar model are unclassifiable
+// pointer physics — recorded with the fixed unclassified reason, never guessed.
+const IDENT4 = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1];
+function parseMatrix(t) {
+  if (!t || t === 'none') return { kind: 'none', nums: null };
+  const m = /^matrix\(([^)]+)\)$/.exec(t);
+  if (m) {
+    const p = m[1].split(',').map(Number);
+    if (p.length === 6 && p.every(Number.isFinite)) return { kind: 'matrix', nums: p };
+  }
+  const m3 = /^matrix3d\(([^)]+)\)$/.exec(t);
+  if (m3) {
+    const p = m3[1].split(',').map(Number);
+    if (p.length === 16 && p.every(Number.isFinite)) return { kind: 'matrix3d', nums: p };
+  }
+  return null;
+}
+function to3d(kind, nums) {
+  if (kind === 'none') return IDENT4.slice();
+  if (kind === 'matrix3d') return nums.slice();
+  const [a, b, c, d, e, f] = nums;
+  return [a,b,0,0, c,d,0,0, 0,0,1,0, e,f,0,1];
+}
+// Translation components move in px; the rest are unitless (rotation/scale).
+const TRANSLATE_IDX = new Set([12, 13, 14]);
+function compTol(i) { return TRANSLATE_IDX.has(i) ? 0.75 : 0.004; }
+
+// Least-squares plane fit v = a*mx + b*my + c over the samples; returns
+// coefficients + R². Solved via the 3x3 normal equations (Cramer's rule).
+function planeFit(ms, vs) {
+  const n = ms.length;
+  let sx=0, sy=0, sxx=0, syy=0, sxy=0, sv=0, sxv=0, syv=0;
+  for (let i = 0; i < n; i++) {
+    const [x, y] = ms[i], v = vs[i];
+    sx+=x; sy+=y; sxx+=x*x; syy+=y*y; sxy+=x*y; sv+=v; sxv+=x*v; syv+=y*v;
+  }
+  const det3 = (m) =>
+    m[0]*(m[4]*m[8]-m[5]*m[7]) - m[1]*(m[3]*m[8]-m[5]*m[6]) + m[2]*(m[3]*m[7]-m[4]*m[6]);
+  const M = [sxx, sxy, sx, sxy, syy, sy, sx, sy, n];
+  const D = det3(M);
+  if (Math.abs(D) < 1e-9) return null;
+  const a = det3([sxv, sxy, sx, syv, syy, sy, sv, sy, n]) / D;
+  const b = det3([sxx, sxv, sx, sxy, syv, sy, sx, sv, n]) / D;
+  const c = det3([sxx, sxy, sxv, sxy, syy, syv, sx, sy, sv]) / D;
+  const mean = sv / n;
+  let ssRes = 0, ssTot = 0;
+  for (let i = 0; i < n; i++) {
+    const [x, y] = ms[i], v = vs[i];
+    ssRes += (v - (a*x + b*y + c)) ** 2;
+    ssTot += (v - mean) ** 2;
+  }
+  const r2 = ssTot < 1e-9 ? 1 : 1 - ssRes / ssTot;
+  return { a, b, c, r2 };
+}
+
+function fitPointerFields(samples) {
   // samples: [{ mx, my, snap: { id: transform } }]
-  const followers = [];
+  const fields = [];
   const unclassified = [];
-  if (samples.length < 3) return { followers, unclassified };
+  if (samples.length < 6) return { fields, unclassified };
   const ids = Object.keys(samples[0].snap);
-  const parseT = (t) => {
-    if (!t || t === 'none') return { tx: 0, ty: 0 };
-    const m = /matrix\(([^)]+)\)/.exec(t);
-    if (m) { const p = m[1].split(',').map(Number); return { tx: p[4], ty: p[5] }; }
-    const m3 = /matrix3d\(([^)]+)\)/.exec(t);
-    if (m3) { const p = m3[1].split(',').map(Number); return { tx: p[12], ty: p[13] }; }
-    return null;
-  };
-  const linfit = (xs, ys) => {
-    const n = xs.length;
-    const mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n;
-    let sxy = 0, sxx = 0, syy = 0;
-    for (let i = 0; i < n; i++) { sxy += (xs[i]-mx)*(ys[i]-my); sxx += (xs[i]-mx)**2; syy += (ys[i]-my)**2; }
-    if (sxx < 1e-6) return { a: 0, b: my, r2: syy < 1 ? 1 : 0 };
-    const a = sxy / sxx, b = my - a * mx;
-    const r2 = syy < 1e-6 ? 1 : (sxy * sxy) / (sxx * syy);
-    return { a, b, r2 };
-  };
+  const ms = samples.map(s => [s.mx, s.my]);
   for (const id of ids) {
-    const ts = samples.map(s => parseT(s.snap[id]));
-    if (ts.some(t => t === null)) continue;
-    const moved = ts.some(t => Math.abs(t.tx - ts[0].tx) > 2 || Math.abs(t.ty - ts[0].ty) > 2);
-    if (!moved) continue;
-    const fx = linfit(samples.map(s => s.mx), ts.map(t => t.tx));
-    const fy = linfit(samples.map(s => s.my), ts.map(t => t.ty));
-    if (fx.r2 > 0.9 && fy.r2 > 0.9)
-      followers.push({ id, ax: fx.a, bx: fx.b, ay: fy.a, by: fy.b });
+    const parsed = samples.map(s => parseMatrix(s.snap[id]));
+    if (parsed.some(p => p === null)) continue;
+    const is3d = parsed.some(p => p.kind === 'matrix3d');
+    const mats = parsed.map(p => to3d(p.kind, p.nums));
+    const varying = [];
+    for (let i = 0; i < 16; i++) {
+      const col = mats.map(m => m[i]);
+      if (Math.max(...col) - Math.min(...col) > compTol(i)) varying.push(i);
+    }
+    if (!varying.length) continue;
+    let ok = true;
+    const comps = mats[0].map((v, i) => ({ a: 0, b: 0, c: v }));
+    for (const i of varying) {
+      const fit = planeFit(ms, mats.map(m => m[i]));
+      if (!fit || fit.r2 < 0.85) { ok = false; break; }
+      comps[i] = { a: fit.a, b: fit.b, c: fit.c };
+    }
+    if (ok)
+      fields.push({ id, kind: is3d ? 'matrix3d' : 'matrix', comps, tauMs: 0 });
     else
       unclassified.push({ trigger: id, reason: REASONS.UNCLASSIFIED_BEHAVIOR, kind: 'pointer' });
   }
-  return { followers, unclassified };
+  return { fields, unclassified };
+}
+
+// Smoothing/lag recovery: many pointer choreographies chase the target with
+// an exponential lerp (cur += (target - cur) * k per frame) — the source of
+// the "ultra-smooth" trailing feel. Estimate each field's time constant from
+// a step response: with the pointer parked, jump it to a distant point and
+// sample the node's dominant varying matrix component per frame; tau is the
+// time to cover 63.2% of the gap. Instant responders get tau 0.
+function estimateTau(response, field) {
+  // response: [{ t, transform }] frame samples after the pointer jump.
+  if (!response || response.length < 4) return 0;
+  const mats = [];
+  for (const r of response) {
+    const p = parseMatrix(r.transform);
+    if (!p) return 0;
+    mats.push(to3d(p.kind, p.nums));
+  }
+  // Dominant component: largest normalized start→end travel among varying ones.
+  let idx = -1, best = 0;
+  for (let i = 0; i < 16; i++) {
+    const d = Math.abs(mats[mats.length - 1][i] - mats[0][i]) / compTol(i);
+    if (d > best) { best = d; idx = i; }
+  }
+  if (idx < 0 || best < 2) return 0;
+  const v0 = mats[0][idx], v1 = mats[mats.length - 1][idx];
+  const target = v0 + 0.632 * (v1 - v0);
+  const rising = v1 > v0;
+  for (let i = 0; i < mats.length; i++) {
+    const v = mats[i][idx];
+    if (rising ? v >= target : v <= target) {
+      const t = response[i].t - response[0].t;
+      return t <= 60 ? 0 : Math.round(t);
+    }
+  }
+  // Never crossed 63.2% within the window: very heavy smoothing; report the
+  // window length as a floor rather than inventing a value.
+  return Math.round(response[response.length - 1].t - response[0].t);
 }
 
 // ---------------------------------------------------------------------------
@@ -1005,6 +1096,12 @@ async function capture(url, outDir, opts = {}) {
             window.__mfMutation({
               id: m.target.getAttribute && m.target.getAttribute('data-mf-id'),
               classes: m.target.classList ? [...m.target.classList] : [],
+              // Timestamp recovers sequential-reveal stagger: the relative
+              // firing order + offsets of elements revealed in one burst.
+              // scrollY separates true stagger (same scroll position) from
+              // elements that simply intersected at different sweep steps.
+              t: performance.now(),
+              y: window.scrollY,
             });
           }
         }
@@ -1221,14 +1318,19 @@ async function capture(url, outDir, opts = {}) {
       ]) || [];
     } catch (e) { hoverProbes = []; }
 
+    // Pointer choreography: sample the page's transforms over a 3x3 grid of
+    // mouse positions (per-position settle lets lag-smoothed followers reach
+    // their target), fit each node's matrix components as planes over the
+    // pointer, then measure smoothing time constants from a step response.
     const cursorSamples = [];
-    const pts = [[0.15, 0.2], [0.85, 0.25], [0.5, 0.75], [0.2, 0.8], [0.8, 0.6]]
-      .slice(0, cfg.cursorSamples);
-    for (const [fx, fy] of pts) {
+    const gridF = [0.15, 0.5, 0.85];
+    const pts = [];
+    for (const fy of gridF) for (const fx of gridF) pts.push([fx, fy]);
+    for (const [fx, fy] of pts.slice(0, cfg.cursorSamples)) {
       const mx = Math.round(width * fx), my = Math.round(height * fy);
       try {
         await page.mouse.move(mx, my, { steps: 4 });
-        await page.waitForTimeout(300);
+        await page.waitForTimeout(cfg.cursorSettleMs);
         const snap = await page.evaluate(() => {
           const out = {};
           document.querySelectorAll('[data-mf-id]').forEach(el => {
@@ -1239,9 +1341,70 @@ async function capture(url, outDir, opts = {}) {
         cursorSamples.push({ mx, my, snap });
       } catch (e) { break; }
     }
-    const cursor = fitCursorFollowers(cursorSamples);
+    const cursor = fitPointerFields(cursorSamples);
+
+    // Smoothing/lag: park the pointer, start a per-frame in-page sampler over
+    // the recovered field nodes, jump the pointer across the viewport, and
+    // estimate each node's exponential time constant from its step response.
+    if (cursor.fields.length) {
+      try {
+        await page.mouse.move(Math.round(width * 0.2), Math.round(height * 0.25), { steps: 2 });
+        await page.waitForTimeout(Math.max(600, cfg.cursorSettleMs));
+        const fieldIds = cursor.fields.map(f => f.id);
+        const samplerP = page.evaluate(({ ids, durationMs }) => new Promise((resolve) => {
+          const els = ids.map(id => [id, document.querySelector(`[data-mf-id="${id}"]`)]);
+          const out = {};
+          for (const [id] of els) out[id] = [];
+          const t0 = performance.now();
+          (function tick() {
+            const t = performance.now() - t0;
+            for (const [id, el] of els) {
+              if (el) out[id].push({ t, transform: getComputedStyle(el).transform });
+            }
+            if (t < durationMs) requestAnimationFrame(tick);
+            else resolve(out);
+          })();
+        }), { ids: fieldIds, durationMs: cfg.pointerLagMs });
+        await page.waitForTimeout(80);
+        await page.mouse.move(Math.round(width * 0.8), Math.round(height * 0.75), { steps: 1 });
+        const responses = await samplerP;
+        for (const f of cursor.fields) {
+          // Trim leading pre-jump frames: motion starts where the value first
+          // deviates measurably from the parked state.
+          const r = responses[f.id] || [];
+          let start = 0;
+          while (start < r.length - 1 && r[start + 1].transform === r[0].transform) start++;
+          f.tauMs = estimateTau(r.slice(start), f);
+        }
+      } catch (e) { /* lag recovery is best-effort; fields stay tau 0 */ }
+    }
+
+    // Ground-truth pointer-state shots: the convergence step replays the same
+    // pointer positions on the reconstruction and diffs against these.
+    const pointerShots = [];
+    if (cursor.fields.length) {
+      const maxTau = Math.max(0, ...cursor.fields.map(f => f.tauMs || 0));
+      const settle = Math.min(3000, Math.max(800, 5 * maxTau));
+      for (let i = 0; i < (cfg.pointerCheckpoints || []).length; i++) {
+        const [fx, fy] = cfg.pointerCheckpoints[i];
+        const mx = Math.round(width * fx), my = Math.round(height * fy);
+        try {
+          await page.mouse.move(mx, my, { steps: 6 });
+          await page.waitForTimeout(settle);
+          const shot = `original-pointer-${i}.png`;
+          await page.screenshot({ path: path.join(outDir, shot) });
+          // Second exposure a beat later: pixels that differ are time-driven
+          // (ambient loops, video), not pointer-driven — masked by the verifier.
+          const shotB = `original-pointer-${i}-b.png`;
+          await page.waitForTimeout(350);
+          await page.screenshot({ path: path.join(outDir, shotB) });
+          pointerShots.push({ mx, my, shot, shotB });
+        } catch (e) { break; }
+      }
+    }
     await page.mouse.move(0, 0).catch(() => {});
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(cursor.fields.length ? Math.min(3000,
+      Math.max(400, 5 * Math.max(0, ...cursor.fields.map(f => f.tauMs || 0)))) : 300);
 
     // Ground-truth screenshot per recovered interaction state (real clicks, not
     // class injection) — the convergence step replays the same click sequence on
@@ -1289,7 +1452,8 @@ async function capture(url, outDir, opts = {}) {
                      frameTracks,
                      scrollTracks, maxScroll, scrollShots,
                      hoverProbes,
-                     cursorFollowers: cursor.followers,
+                     pointerFields: cursor.fields,
+                     pointerShots,
                      unclassifiedPointer: cursor.unclassified,
                      scope: {
                        skips: raw.skips || [],

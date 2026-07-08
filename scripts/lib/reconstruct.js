@@ -305,13 +305,20 @@ function generateCss(genome) {
 
   // Recovered scroll-reveal state machine (hidden -> visible on intersection).
   // Only emitted when the hidden state was actually observed at capture.
+  // Each participant's own captured transition (duration, easing, per-item
+  // delay) is replayed verbatim via a per-node rule; the generic rule is the
+  // fallback for nodes whose computed transition had no duration.
   let revealRules = '';
   if (reveal.detected && reveal.hiddenStyle) {
     const hs = reveal.hiddenStyle;
+    const perNode = Object.entries(reveal.transitionsByNode || {})
+      .map(([id, t]) => `[data-mf-id="${id}"].${reveal.triggerClass} { transition: ${t}; }`)
+      .join('\n');
     revealRules =
       `.${reveal.triggerClass} {\n  opacity: ${hs.opacity};\n  transform: ${hs.transform};\n` +
       `  transition: opacity 0.6s ease, transform 0.6s ease;\n}\n` +
-      `.${reveal.triggerClass}.${reveal.visibleClass} {\n  opacity: 1;\n  transform: none;\n}`;
+      `.${reveal.triggerClass}.${reveal.visibleClass} {\n  opacity: 1;\n  transform: none;\n}\n` +
+      `/* per-element recovered transition curves */\n${perNode}`;
   }
 
   // Hover rules recovered verbatim from the original stylesheet.
@@ -426,10 +433,25 @@ function generateApp(genome) {
   ASSET_MAP = (genome.assets && genome.assets.map) || {};
   const tree = emitNode(genome.structure, 3);
   const reveal = genome.motion.reveal;
+  // Sequential reveal replay: elements entering in one intersection burst are
+  // released in viewport order with the recovered per-element offsets
+  // (observed firing timestamps), falling back to the recovered median
+  // stagger step for elements the capture sweep never saw fire.
   const revealEffect = (reveal.detected && reveal.hiddenStyle) ? `
   React.useEffect(() => {
     const io = new IntersectionObserver((entries) => {
-      for (const e of entries) if (e.isIntersecting) e.target.classList.add('${reveal.visibleClass}');
+      const es = entries.filter(e => e.isIntersecting);
+      es.sort((a, b) => {
+        const ra = a.target.getBoundingClientRect(), rb = b.target.getBoundingClientRect();
+        return (ra.top - rb.top) || (ra.left - rb.left);
+      });
+      es.forEach((e, i) => {
+        io.unobserve(e.target);
+        const id = e.target.getAttribute('data-mf-id');
+        const d = REVEAL_STAGGER.ids[id] != null ? REVEAL_STAGGER.ids[id] : i * REVEAL_STAGGER.step;
+        if (d > 0) setTimeout(() => e.target.classList.add('${reveal.visibleClass}'), Math.min(d, 2000));
+        else e.target.classList.add('${reveal.visibleClass}');
+      });
     }, { threshold: ${reveal.threshold} });
     document.querySelectorAll('.${reveal.triggerClass}').forEach(el => io.observe(el));
     return () => io.disconnect();
@@ -549,8 +571,6 @@ function generateApp(genome) {
     });
   }, []);` : '';
 
-  // Cursor followers: linear pointer-tracking recovered by the virtual mouse
-  // agent (tx = ax*mx + bx, ty = ay*my + by).
   // Chronograph frame tracks: time-driven motion recorded frame-by-frame at
   // capture, replayed verbatim as an infinitely-looping WAAPI animation with
   // the sampled timestamps as keyframe offsets.
@@ -572,19 +592,48 @@ function generateApp(genome) {
     return () => anims.forEach(a => a.cancel());
   }, []);` : '';
 
-  const followers = genome.interaction.cursorFollowers || [];
-  const cursorEffect = followers.length ? `
+  // Pointer choreography: recovered matrix-component planes over the pointer
+  // (v = a*mx + b*my + c per component), chased with each node's recovered
+  // exponential smoothing time constant — the original's trailing "smooth
+  // feel" — in a rAF loop that starts on the first real mousemove.
+  const fields = genome.interaction.pointerFields || [];
+  const pointerEffect = fields.length ? `
   React.useEffect(() => {
-    const els = FOLLOWERS.map(f => [document.querySelector('[data-mf-id="' + f.id + '"]'), f]);
-    const onMove = (e) => {
-      for (const [el, f] of els) {
-        if (!el) continue;
-        el.style.transform = 'translate3d(' + (f.ax * e.clientX + f.bx) + 'px,' +
-                             (f.ay * e.clientY + f.by) + 'px,0)';
+    const nodes = POINTER_FIELDS.map(f => ({
+      f, el: document.querySelector('[data-mf-id="' + f.id + '"]'),
+      cur: null, target: f.comps.map(c => c.c),
+    })).filter(n => n.el);
+    let mx = null, my = null, raf = null, last = 0;
+    const fmt = (n) => n.f.kind === 'matrix3d'
+      ? 'matrix3d(' + n.cur.join(',') + ')'
+      : 'matrix(' + [n.cur[0], n.cur[1], n.cur[4], n.cur[5], n.cur[12], n.cur[13]].join(',') + ')';
+    const tick = (t) => {
+      raf = null;
+      const dt = last ? Math.min(100, t - last) : 16;
+      last = t;
+      let busy = false;
+      for (const n of nodes) {
+        n.target = n.f.comps.map(c => c.a * mx + c.b * my + c.c);
+        if (!n.cur) n.cur = n.target.slice();
+        const k = n.f.tauMs > 0 ? 1 - Math.exp(-dt / n.f.tauMs) : 1;
+        let moving = false;
+        n.cur = n.cur.map((v, i) => {
+          const nv = v + (n.target[i] - v) * k;
+          if (Math.abs(n.target[i] - nv) > 1e-4) moving = true;
+          return nv;
+        });
+        if (moving) busy = true; else n.cur = n.target.slice();
+        n.el.style.transform = fmt(n);
       }
+      if (busy) raf = requestAnimationFrame(tick);
+      else last = 0;
+    };
+    const onMove = (e) => {
+      mx = e.clientX; my = e.clientY;
+      if (!raf) raf = requestAnimationFrame(tick);
     };
     window.addEventListener('mousemove', onMove, { passive: true });
-    return () => window.removeEventListener('mousemove', onMove);
+    return () => { window.removeEventListener('mousemove', onMove); if (raf) cancelAnimationFrame(raf); };
   }, []);` : '';
 
   return `import React from 'react';
@@ -595,10 +644,13 @@ const BEHAVIORS = ${JSON.stringify(behaviors, null, 2)};
 const TRACKS = ${JSON.stringify(tracks)};
 const MAX_SCROLL = ${JSON.stringify(genome.motion.maxScroll || 0)};
 const HOVER_CLASS = ${JSON.stringify(hoverClassProbes)};
-const FOLLOWERS = ${JSON.stringify(followers)};
+const POINTER_FIELDS = ${JSON.stringify(fields)};
+const REVEAL_STAGGER = ${JSON.stringify(reveal.detected
+    ? { ids: reveal.staggerMs || {}, step: reveal.staggerStep || 0 }
+    : { ids: {}, step: 0 })};
 const FRAME_TRACKS = ${JSON.stringify(frameTracks)};
 
-function App() {${revealEffect}${behaviorEffect}${scrollEffect}${hoverEffect}${cursorEffect}${frameEffect}
+function App() {${revealEffect}${behaviorEffect}${scrollEffect}${hoverEffect}${pointerEffect}${frameEffect}
   return (
 ${tree}
   );

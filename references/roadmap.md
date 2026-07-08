@@ -38,6 +38,22 @@ does not exist as reliable tooling today and is not claimed as buildable now.
 - **Honest time-varying verification**: `time-varying-replicated` status +
   `time-varying-media` masking for content whose pixels depend on playback phase.
 
+## Done in v0.3.0 (verified by `npm run verify`)
+
+- **Sequential scroll-reveal stagger**: reveal mutations timestamped (with scroll
+  position) during the sweep; per-element firing offsets recovered and replayed,
+  with each participant's own computed transition (duration/easing/delay)
+  re-emitted verbatim. CSS `nth-child` delay staggers and JS-timer staggers both
+  survive the clone.
+- **Pointer choreography** (pulled forward from the interactive-effects tier):
+  3×3 pointer-grid sampling with per-component transform-matrix plane fitting
+  (parallax, 3D tilt, magnetic offset, pointer-linked scale) plus per-node
+  exponential smoothing time-constant recovery from a step response — the
+  "ultra-smooth" trailing feel is measured and replayed, not approximated.
+- **Pointer-state verification tier**: ground-truth pointer checkpoints re-shot
+  on the reconstruction with real mouse moves and pixel-diffed, gated by
+  `npm run verify`; settle-aware replay screenshots throughout.
+
 ## Remaining v0.2-era items (feasible now, engineering work)
 
 - **Broader capture**: pseudo-elements (via `getComputedStyle(el, '::before')`),
@@ -54,7 +70,7 @@ does not exist as reliable tooling today and is not claimed as buildable now.
 
 Prereq: none — all APIs exist today (CDP, WAAPI, IntersectionObserver, esbuild).
 
-## v0.3 — Sampled-motion tier + canvas (hard engineering, some research risk)
+## Next — sampled-motion curve fitting + canvas (hard engineering, some research risk)
 
 - **Chronograph sampled tier**: rAF-driven per-frame sampling of transform/opacity for
   JS-driven animations (GSAP, scroll-linked), then least-squares fit of cubic-bezier /

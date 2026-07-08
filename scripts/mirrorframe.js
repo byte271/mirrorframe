@@ -130,6 +130,11 @@ async function main() {
     for (const s of report.scrollStates)
       console.log(`        - scroll ${Math.round((s.fraction || 0) * 100)}%: ${s.status} (sim ${pct(s.similarity)})`);
   }
+  if (report.pointerStates && report.pointerStates.length) {
+    console.log(`      pointer:  ${report.summary.pointerStates.pass} pass, ${report.summary.pointerStates.fail} fail`);
+    for (const s of report.pointerStates)
+      console.log(`        - pointer (${s.mx},${s.my}): ${s.status} (sim ${pct(s.similarity)})`);
+  }
   const as = report.summary.assets;
   if (as.bundled || as.misses || as.fontFaces)
     console.log(`      assets:   ${as.bundled} bundled, ${as.fontFaces} font faces, ${as.misses} misses`);
@@ -157,7 +162,8 @@ async function main() {
   const summary = {
     url, viewport: { width, height },
     pageStatus: (report.summary.nodes.failed === 0 && report.summary.states.fail === 0 &&
-                 report.summary.scrollStates.fail === 0)
+                 report.summary.scrollStates.fail === 0 &&
+                 report.summary.pointerStates.fail === 0)
       ? 'success' : 'partial',
     durationMs: bundle.timings.captureMs,
     nodes: bundle.flat.length,
@@ -171,10 +177,13 @@ async function main() {
     perNode: report.summary.nodes,
     states: report.summary.states,
     scrollStates: report.summary.scrollStates,
+    pointerStates: report.summary.pointerStates,
     scrollTracks: (genome.motion.scrollTracks || []).length,
     frameTracks: (genome.motion.frameTracks || []).length,
     hoverJs: (genome.interaction.hoverJs || []).length,
-    cursorFollowers: (genome.interaction.cursorFollowers || []).length,
+    pointerFields: (genome.interaction.pointerFields || []).length,
+    revealStagger: genome.motion.reveal.detected
+      ? Object.keys(genome.motion.reveal.staggerMs || {}).length : 0,
     assets: report.summary.assets,
     similarity: { fold: fold.similarity, full: full.similarity },
     scope: { skips: skipHist, maskedRegions: report.maskedRegions,

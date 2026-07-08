@@ -138,11 +138,12 @@ function buildGenome(bundle) {
     selector: r.selector, declarations: r.declarations,
   }));
   const { behaviors, unclassified } = classifyBehaviors(bundle);
-  // Virtual-mouse recoveries: JS-driven hover deltas + linear cursor
-  // followers. Pointer-driven nodes that fit no linear model arrive as
+  // Virtual-mouse recoveries: JS-driven hover deltas + pointer choreography
+  // fields (per-matrix-component planes over the pointer, with smoothing time
+  // constants). Pointer-driven nodes that fit no planar model arrive as
   // unclassified (fixed reason) from capture — surfaced, not guessed.
   const hoverJs = bundle.hoverProbes || [];
-  const cursorFollowers = bundle.cursorFollowers || [];
+  const pointerFields = bundle.pointerFields || [];
   for (const u of bundle.unclassifiedPointer || []) unclassified.push(u);
 
   // --- Structure with token references ---
@@ -179,7 +180,9 @@ function buildGenome(bundle) {
       shadow: shadowRank,
     },
     motion,
-    interaction: { hover, hoverJs, cursorFollowers, behaviors, unclassified },
+    interaction: { hover, hoverJs, pointerFields,
+                   pointerShots: bundle.pointerShots || [],
+                   behaviors, unclassified },
     assets: bundle.assets || { map: {}, misses: [] },
     fontFaces: bundle.fontFaces || [],
     // Scope report: everything capture could not handle, with fixed reasons.
@@ -409,6 +412,60 @@ function recoverReveal(bundle) {
   const hiddenNode = bundle.flat.find(n =>
     n.classes.includes(triggerClass) && !n.classes.includes(visibleClass) &&
     parseFloat(n.style.opacity) === 0);
+
+  // Per-element transition curves: each participant's captured computed
+  // `transition` carries its own duration, easing, and delay — CSS-authored
+  // stagger (per-item transition-delay) and per-element easing are replayed
+  // verbatim. Zero-duration values (the 'all 0s ease 0s' default) are
+  // omitted; those nodes fall back to the generic reveal transition.
+  const hasDuration = (t) => (t || '').split(',').some(part => {
+    const m = /(-?[\d.]+)(m?s)/.exec(part);
+    return m && parseFloat(m[1]) * (m[2] === 's' ? 1000 : 1) > 0;
+  });
+  const transitionsByNode = {};
+  for (const id of participants) {
+    const t = byId.get(id).style && byId.get(id).style.transition;
+    if (hasDuration(t)) transitionsByNode[id] = t;
+  }
+
+  // Stagger recovery from mutation timestamps: elements revealed in one burst
+  // (a shared intersection event, staggered by JS timers) carry their firing
+  // offsets relative to the burst start; the median gap seeds unobserved
+  // elements at replay time. A gap > 500ms starts a new burst — that is a new
+  // intersection, not stagger.
+  const firedAt = new Map();
+  for (const m of bundle.revealMutations) {
+    if (m.t == null || firedAt.has(m.id)) continue;
+    if (addedByNode.has(m.id) && (m.classes || []).includes(visibleClass) &&
+        addedByNode.get(m.id).has(visibleClass)) firedAt.set(m.id, { t: m.t, y: m.y });
+  }
+  // A node whose own CSS transition already carries a delay staggers itself —
+  // adding its mutation offset on top would double the delay.
+  const hasCssDelay = (id) => {
+    const t = transitionsByNode[id];
+    return !!t && t.split(',').some(part => {
+      const times = part.match(/(-?[\d.]+)(m?s)/g) || [];
+      if (times.length < 2) return false;
+      const last = /(-?[\d.]+)(m?s)/.exec(times[times.length - 1]);
+      return parseFloat(last[1]) * (last[2] === 's' ? 1000 : 1) >= 30;
+    });
+  };
+  const ordered = [...firedAt.entries()].sort((a, b) => a[1].t - b[1].t);
+  const staggerMs = {};
+  const gaps = [];
+  let burstStart = null, prevT = null, prevY = null;
+  for (const [id, { t, y }] of ordered) {
+    // New burst: a long silence OR a different scroll position — elements that
+    // intersected at different sweep steps are NOT staggered peers.
+    if (burstStart === null || t - prevT > 500 || (y != null && y !== prevY)) burstStart = t;
+    else gaps.push(t - prevT);
+    staggerMs[id] = hasCssDelay(id) ? 0 : Math.min(2000, Math.round(t - burstStart));
+    prevT = t; prevY = y;
+  }
+  const sortedGaps = gaps.filter(g => g >= 30).sort((a, b) => a - b);
+  const staggerStep = sortedGaps.length >= 2
+    ? Math.min(600, Math.round(sortedGaps[Math.floor(sortedGaps.length / 2)])) : 0;
+
   return {
     detected: true,
     triggerClass,
@@ -418,6 +475,9 @@ function recoverReveal(bundle) {
       ? { opacity: hiddenNode.style.opacity, transform: hiddenNode.style.transform }
       : null,
     revealedIds,
+    transitionsByNode,
+    staggerMs,
+    staggerStep,
   };
 }
 

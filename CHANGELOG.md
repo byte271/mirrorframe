@@ -1,5 +1,75 @@
 # Changelog
 
+## v0.3.0
+
+Visual-effects release — sequential scroll-reveal stagger and pointer
+choreography, including the smoothing/lag that produces the "ultra-smooth"
+trailing feel. Everything below is recovered from the page by observation,
+replayed with the original curves, and verified by a new pointer-state
+replay tier.
+
+**Sequential scroll-reveal recovery (stagger + per-element curves)**
+- Reveal mutations are now timestamped (plus scroll position) by the scroll
+  agent's MutationObserver: the genome recovers each element's firing offset
+  within its intersection burst, so JS-timer staggers (items released one by
+  one via `setTimeout`) are replayed with the observed offsets. A burst
+  boundary is a >500ms silence OR a different scroll position — elements that
+  simply intersected at different sweep steps are never mislabeled as stagger.
+- Per-element transition curves: each reveal participant's captured computed
+  `transition` (duration, easing function, and `transition-delay`) is
+  re-emitted verbatim as a per-node rule — CSS-authored staggers
+  (`nth-child` delays) and mixed easing curves survive the clone exactly.
+  Nodes whose CSS transition already carries a delay are excluded from
+  timestamp-derived stagger (no double delay).
+- The reconstruction's IntersectionObserver releases a burst's elements in
+  viewport order with the recovered offsets, falling back to the recovered
+  median stagger step for elements the capture sweep never saw fire.
+
+**Pointer choreography (mouse-movement effects + the smooth feel)**
+- The virtual-mouse agent now samples the page over a 3×3 pointer grid (with
+  per-position settle so lag-smoothed followers reach their targets) and fits
+  EVERY component of each node's transform matrix as a plane over the pointer
+  (`v = a·mx + b·my + c`, least squares, R² ≥ 0.85 per component). This
+  recovers parallax layers (per-layer coefficients, including inverse
+  movement), 3D tilt cards (`rotateX`/`rotateY` components of `matrix3d`),
+  magnetic/offset elements, and pointer-linked scale — not just linear
+  translation followers.
+- **Smoothing time-constant recovery**: many choreographies chase the pointer
+  with an exponential lerp (`cur += (target − cur) · k` per frame) — the
+  source of the trailing "ultra-smooth" feel. Capture measures each field's
+  step response (park the pointer, jump it, sample the dominant matrix
+  component per frame) and records tau = time to cover 63.2% of the gap.
+  The reconstruction replays the fields with the same exponential chase in a
+  rAF loop, using the recovered per-node tau; instant responders (tau 0)
+  apply directly.
+- Pointer-driven nodes that fit no planar model are recorded as
+  `unclassified-behavior` (kind: pointer) — surfaced in the scope report,
+  never guessed.
+
+**Pointer-state verification (new replay tier)**
+- Capture takes ground-truth screenshots at fixed pointer checkpoints (settle
+  time scaled to the largest recovered tau, with a second exposure to mask
+  time-driven pixels); convergence replays the same real mouse moves on the
+  reconstruction and pixel-diffs per checkpoint. Reported as
+  `pointerStates` in `convergence.json`/`summary.json` and gated by
+  `npm run verify` alongside nodes/states/scroll.
+- Scroll-state and full-page replay shots are now settle-aware: verification
+  waits (bounded) until two consecutive frames match, so staggered reveal
+  transitions and lag-smoothed pointer effects finish before the diff.
+
+**Fixtures / gate**
+- New `fixtures/stress-stagger`: six tiles staggered by CSS `nth-child`
+  transition-delays (0–750ms, expo ease-out) + four rows staggered by JS
+  timers on intersection. Verifies per-element curve recovery, timestamp
+  stagger, and settle-aware replay.
+- New `fixtures/stress-pointer`: three parallax layers (distinct
+  coefficients, one inverted), a 3D tilt card (`matrix3d`), and a smooth
+  follower chip (exponential lerp, k=0.12/frame). Verifies matrix plane
+  fitting, tau recovery (measured ≈211ms), and pointer-state replay
+  (both checkpoints ≥99.88%).
+- All 12 fixtures pass `npm run verify` with 0 failed nodes/states,
+  0 failed scroll states, 0 failed pointer states.
+
 ## v0.2.0
 
 Fidelity release — capture completeness down to the individual frame, and full

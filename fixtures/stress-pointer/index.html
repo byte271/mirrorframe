@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stress — Pointer Choreography</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #101318;
+    color: #edeae2;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .stage {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 64px;
+  }
+  /* Parallax layers: each translates linearly with the pointer at its own
+     coefficient — the classic depth-drift choreography. */
+  .layer {
+    position: absolute;
+    border-radius: 50%;
+    will-change: transform;
+  }
+  .layer-back {
+    width: 340px; height: 340px;
+    left: 8%; top: 12%;
+    background: radial-gradient(circle at 35% 35%, #1d2c4a, #131a2b);
+  }
+  .layer-mid {
+    width: 200px; height: 200px;
+    right: 12%; top: 18%;
+    background: radial-gradient(circle at 40% 30%, #3a2b18, #241a10);
+  }
+  .layer-front {
+    width: 120px; height: 120px;
+    left: 18%; bottom: 14%;
+    background: radial-gradient(circle at 40% 35%, #e0602f, #8a3a1c);
+  }
+  /* Tilt card: rotates in 3D toward the pointer. */
+  .tilt-card {
+    width: 300px;
+    padding: 36px 32px;
+    background: #191d26;
+    border: 1px solid #2a3040;
+    border-radius: 14px;
+    will-change: transform;
+  }
+  .tilt-card h2 { font-size: 22px; margin-bottom: 12px; }
+  .tilt-card p { color: #8b8fa3; font-size: 15px; line-height: 1.5; }
+  /* Smooth follower: chases the pointer with an exponential lerp — the
+     trailing "ultra-smooth" lag the capture must measure and replay. */
+  .glide-chip {
+    width: 220px;
+    padding: 24px;
+    background: #14181f;
+    border: 1px solid #e0602f;
+    border-radius: 10px;
+    will-change: transform;
+  }
+  .glide-chip strong { color: #e0602f; }
+  .glide-chip span { color: #8b8fa3; font-size: 14px; display: block; margin-top: 8px; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="layer layer-back" id="back"></div>
+    <div class="layer layer-mid" id="mid"></div>
+    <div class="layer layer-front" id="front"></div>
+
+    <div class="tilt-card" id="tilt">
+      <h2>Tilt toward the cursor</h2>
+      <p>This card rotates in 3D as the pointer crosses the viewport — a
+         recovered matrix3d choreography, not a hover state.</p>
+    </div>
+
+    <div class="glide-chip" id="glide">
+      <strong>Smooth follower</strong>
+      <span>Chases the pointer with a lerp — the lag is the feature.</span>
+    </div>
+  </div>
+
+  <script>
+    const back = document.getElementById('back');
+    const mid = document.getElementById('mid');
+    const front = document.getElementById('front');
+    const tilt = document.getElementById('tilt');
+    const glide = document.getElementById('glide');
+    const W = () => window.innerWidth, H = () => window.innerHeight;
+    let mx = W() / 2, my = H() / 2;
+    // Parallax + tilt: applied immediately on mousemove.
+    window.addEventListener('mousemove', (e) => {
+      mx = e.clientX; my = e.clientY;
+      const nx = mx / W() - 0.5, ny = my / H() - 0.5;
+      back.style.transform = 'translate3d(' + (nx * -30) + 'px,' + (ny * -30) + 'px,0)';
+      mid.style.transform = 'translate3d(' + (nx * 55) + 'px,' + (ny * 55) + 'px,0)';
+      front.style.transform = 'translate3d(' + (nx * 90) + 'px,' + (ny * 90) + 'px,0)';
+      tilt.style.transform = 'rotateX(' + (-ny * 6) + 'deg) rotateY(' + (nx * 6) + 'deg)';
+    }, { passive: true });
+    // Smooth follower: exponential chase in a rAF loop (k per ~16ms frame).
+    let gx = 0, gy = 0;
+    (function loop() {
+      const tx = (mx / W() - 0.5) * 70, ty = (my / H() - 0.5) * 70;
+      gx += (tx - gx) * 0.12;
+      gy += (ty - gy) * 0.12;
+      glide.style.transform = 'translate3d(' + gx + 'px,' + gy + 'px,0)';
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

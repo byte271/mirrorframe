@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stress — Sequential Scroll Reveal</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    background: #0e0f13;
+    color: #e8e6df;
+    line-height: 1.6;
+  }
+  .hero {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 72px;
+  }
+  .hero h1 { font-size: 54px; line-height: 1.1; max-width: 700px; }
+  .hero p { color: #8b8fa3; font-size: 19px; margin-top: 20px; max-width: 520px; }
+  section { padding: 120px 72px; }
+  h2 { font-size: 34px; margin-bottom: 48px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+  .tile {
+    background: #181a22;
+    border: 1px solid #262936;
+    border-radius: 12px;
+    padding: 32px 28px;
+    min-height: 180px;
+  }
+  .tile h3 { font-size: 20px; margin-bottom: 12px; color: #ffffff; }
+  .tile p { color: #8b8fa3; font-size: 15px; }
+  /* CSS-authored stagger: each tile carries its own transition-delay and a
+     distinct easing curve — the capture must recover these per element. */
+  .fade-item {
+    opacity: 0;
+    transform: translateY(36px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .fade-item.shown { opacity: 1; transform: translateY(0); }
+  .grid .fade-item:nth-child(2) { transition-delay: 0.15s; }
+  .grid .fade-item:nth-child(3) { transition-delay: 0.3s; }
+  .grid .fade-item:nth-child(4) { transition-delay: 0.45s; }
+  .grid .fade-item:nth-child(5) { transition-delay: 0.6s; }
+  .grid .fade-item:nth-child(6) { transition-delay: 0.75s; }
+  /* JS-staggered list: items are released one by one by setTimeout — the
+     capture must recover the firing offsets from mutation timestamps. */
+  .row-list { display: flex; flex-direction: column; gap: 18px; max-width: 640px; }
+  .row {
+    background: #14161d;
+    border-left: 3px solid #e0602f;
+    padding: 20px 24px;
+    border-radius: 6px;
+  }
+  .row strong { color: #ffffff; }
+  .row span { color: #8b8fa3; font-size: 15px; }
+  footer { padding: 80px 72px; color: #565a6b; font-size: 14px; }
+</style>
+</head>
+<body>
+  <div class="hero">
+    <h1>Things arrive one by one, not all at once.</h1>
+    <p>Scroll down. Every card fades in on its own clock, with its own curve.</p>
+  </div>
+
+  <section>
+    <h2 class="fade-item">Six tiles, CSS-delay staggered</h2>
+    <div class="grid">
+      <div class="tile fade-item"><h3>Alpha</h3><p>First to land, no delay at all.</p></div>
+      <div class="tile fade-item"><h3>Beta</h3><p>150 milliseconds behind the leader.</p></div>
+      <div class="tile fade-item"><h3>Gamma</h3><p>Third in the queue at 300ms.</p></div>
+      <div class="tile fade-item"><h3>Delta</h3><p>Fourth, easing in at 450ms.</p></div>
+      <div class="tile fade-item"><h3>Epsilon</h3><p>Fifth wave, 600ms after the first.</p></div>
+      <div class="tile fade-item"><h3>Zeta</h3><p>Last one through the door at 750ms.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="fade-item">Four rows, JS-timer staggered</h2>
+    <div class="row-list">
+      <div class="row fade-item js-seq"><strong>Step one.</strong> <span>Released immediately on intersection.</span></div>
+      <div class="row fade-item js-seq"><strong>Step two.</strong> <span>A 180ms beat later.</span></div>
+      <div class="row fade-item js-seq"><strong>Step three.</strong> <span>Another 180ms after that.</span></div>
+      <div class="row fade-item js-seq"><strong>Step four.</strong> <span>The tail of the sequence.</span></div>
+    </div>
+  </section>
+
+  <footer>Stress fixture: sequential scroll-reveal stagger (CSS delays + JS timers).</footer>
+
+  <script>
+    const io = new IntersectionObserver((entries) => {
+      let jsIndex = 0;
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        io.unobserve(e.target);
+        if (e.target.classList.contains('js-seq')) {
+          const d = 180 * jsIndex++;
+          setTimeout(() => e.target.classList.add('shown'), d);
+        } else {
+          e.target.classList.add('shown');
+        }
+      }
+    }, { threshold: 0.2 });
+    document.querySelectorAll('.fade-item').forEach((el) => io.observe(el));
+  </script>
+</body>
+</html>

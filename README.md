@@ -31,7 +31,7 @@ node scripts/mirrorframe.js run --dir ./fixtures/tabs --out ./mf-out/tabs
 
 # optional capture viewport: --width 1280 --height 800   (defaults shown)
 
-npm run verify         # regression gate: full pipeline on all 10 bundled fixtures
+npm run verify         # regression gate: full pipeline on all 12 bundled fixtures
 ```
 
 Open the reconstruction at `<out>/recon-app/index.html` — a self-contained React app
@@ -50,7 +50,7 @@ Open the reconstruction at `<out>/recon-app/index.html` — a self-contained Rea
    the identical viewport, verifies per node and per state, auto-corrects residual
    drift, and replays every recovered interaction and scroll state.
 
-## Feature list (v0.2.0 — everything below is implemented and verified)
+## Feature list (v0.3.0 — everything below is implemented and verified)
 
 ### Capture & assets
 - Full computed-style capture per node (layout, color, type, borders, shadows,
@@ -71,9 +71,21 @@ Open the reconstruction at `<out>/recon-app/index.html` — a self-contained Rea
 - CSS `@keyframes` animations and transitions (recovered via WAAPI `getAnimations()`)
 - `:hover` rules recovered verbatim from same-origin stylesheets; **JS-driven hover
   effects** recovered by a synthetic hover probe
-- **Cursor followers** (elements tracking the pointer) detected and re-wired
+- **Pointer choreography** (new in 0.3): mouse-movement effects are recovered by
+  sampling the page over a 3×3 pointer grid and fitting every transform-matrix
+  component as a plane over the pointer (least squares, R² ≥ 0.85) — parallax
+  layers, 3D tilt cards (`matrix3d`), magnetic offsets, pointer-linked scale.
+  **Smoothing/lag is recovered too**: the exponential time constant of the
+  "ultra-smooth" trailing chase is measured from a pointer-jump step response
+  and replayed with the same lerp in the reconstruction. Non-planar pointer
+  physics is reported as unclassified, never guessed
 - **Scroll choreography**: scroll-position–linked style tracks are sampled at multiple
   scroll depths and re-emitted; verified by scroll-state replay at 25/50/75%
+- **Sequential scroll-reveal stagger** (new in 0.3): reveal mutations are
+  timestamped, so elements that fade/slide in one by one are replayed with their
+  observed per-element offsets; each participant's own computed `transition`
+  (duration, easing curve, `transition-delay`) is re-emitted verbatim — CSS
+  `nth-child` delay staggers and JS-timer staggers both survive the clone
 - **Chronograph frame sampler** (new in 0.2): time-driven motion with *no declared
   animation object* (rAF loops, JS tickers) is detected and recorded at **every
   animation frame** for a bounded window (2400ms, ≤120 tracks) — transform, opacity,
@@ -103,6 +115,11 @@ Recovered from the page by synthetic probes — never assumed or hardcoded:
 - **Behavioral replay**: every recovered interaction state is replayed with real
   clicks and pixel-diffed against a ground-truth screenshot of the original
 - **Scroll replay**: the page is verified at multiple scroll depths, not just the fold
+- **Pointer replay** (new in 0.3): ground-truth screenshots at fixed pointer
+  checkpoints are re-shot on the reconstruction with the same real mouse moves
+  (settle time scaled to the largest recovered smoothing tau) and pixel-diffed;
+  replay shots are settle-aware, waiting until consecutive frames match so
+  staggered reveals and lag-smoothed effects finish before the diff
 - **Time-varying honesty** (new in 0.2): bundled video/canvas and frame-sampled nodes
   have their *mechanism* replicated, but pixels depend on the playback instant — they
   are masked from diffs with the fixed reason `time-varying-media`, itemized, never
@@ -115,11 +132,14 @@ Recovered from the page by synthetic probes — never assumed or hardcoded:
 
 ## Verified results (clean run, `npm run verify`)
 
-All 10 bundled fixtures pass with **0 failed nodes and 0 failed states** — including
-`stress-frames` (rAF inline-style motion + animated canvas, new in 0.2), `stress-scale`
-(230 nodes / 120 interactive), `stress-edgecss` (container queries, `:has()`),
-`stress-iframe`, `stress-flaky` (404/hung assets), and `stress-carousel` (autoplay →
-excluded, not mislearned).
+All 12 bundled fixtures pass with **0 failed nodes, 0 failed states, 0 failed
+scroll states, and 0 failed pointer states** — including `stress-stagger`
+(CSS-delay + JS-timer sequential reveals, new in 0.3), `stress-pointer`
+(parallax/tilt/smooth-follower pointer choreography, new in 0.3), `stress-frames`
+(rAF inline-style motion + animated canvas), `stress-scale` (230 nodes / 120
+interactive), `stress-edgecss` (container queries, `:has()`), `stress-iframe`,
+`stress-flaky` (404/hung assets), and `stress-carousel` (autoplay → excluded,
+not mislearned).
 
 The pipeline has also been spot-validated against complex real-world production pages
 (hundreds of nodes; heavy video, scroll choreography, and rAF motion) with aggregate
@@ -143,7 +163,7 @@ per-node table is `convergence.json`; residual maps are `diff-*.png`.
 | `genome.json` | Design Genome: tokens, motion DNA, interaction DNA, annotated structure |
 | `assets/` | locally bundled images, fonts, videos, posters, media stills |
 | `recon-app/` | generated React app (jsx + css + bundle + html) |
-| `original-*.png` / `state-*.png` / `scroll-*.png` | ground-truth screenshots |
+| `original-*.png` / `state-*.png` / `scroll-*.png` / `pointer-*.png` | ground-truth screenshots |
 | `recon-*.png` / `diff-*.png` | reconstruction screenshots + pixelmatch residual maps |
 | `convergence.json` | per-node table, correction log, state/scroll replay results, aggregates |
 | `summary.json` | one-screen quantitative summary |
@@ -165,14 +185,17 @@ scripts/lib/converge.js         per-node + aggregate diff, auto-correction, stat
 references/behavior-patterns.md recovered-pattern catalog (reveal/toggle/exclusive/pair)
 references/limitations.md       hard scope limits + expected non-pass statuses
 references/roadmap.md           forward planning, feasible-now vs research-level
-fixtures/                       10 self-authored test pages (4 core + 6 stress)
+fixtures/                       12 self-authored test pages (4 core + 8 stress)
 ```
 
 ## Known limitations (deliberate scope — see references/limitations.md)
 
 - Canvas/WebGL *draw streams* are not reconstructed — a canvas becomes a pixel-true
   still of its captured frame, not a live re-render
-- No physics, inertia, or spring recovery; frame tracks replay observed motion verbatim
+- Pointer physics beyond a planar matrix-component model (proximity-gated magnets,
+  springs with overshoot) is reported as unclassified, not approximated; recovered
+  smoothing is a single exponential time constant per node
+- No general physics/inertia/spring recovery; frame tracks replay observed motion verbatim
 - Behavior graphing covers class-toggle machines driven by click/scroll/hover — no
   drags, keyboard machines, or DOM insertion/removal machines
 - One output target: React + plain CSS

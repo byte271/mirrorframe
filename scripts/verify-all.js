@@ -25,11 +25,16 @@ for (const f of fixtures) {
   const r = JSON.parse(fs.readFileSync(path.join(outRoot, f, 'convergence.json')));
   const s = JSON.parse(fs.readFileSync(path.join(outRoot, f, 'summary.json')));
   const n = r.summary.nodes;
-  if (n.failed > 0 || r.summary.states.fail > 0) anyFailed = true;
+  const scroll = r.summary.scrollStates || { pass: 0, fail: 0 };
+  const pointer = r.summary.pointerStates || { pass: 0, fail: 0 };
+  if (n.failed > 0 || r.summary.states.fail > 0 || scroll.fail > 0 || pointer.fail > 0)
+    anyFailed = true;
   rows.push({
     fixture: f,
     nodes: `${n.pass}P/${n.styleVerified}SV/${n.corrected}C/${n.failed}F/${n.animatedUnstable}A/${n.hiddenAtCapture}H`,
     states: `${r.summary.states.pass}P/${r.summary.states.fail}F`,
+    scroll: `${scroll.pass}P/${scroll.fail}F`,
+    pointer: `${pointer.pass}P/${pointer.fail}F`,
     fold: (s.similarity.fold * 100).toFixed(2) + '%',
     full: (s.similarity.full * 100).toFixed(2) + '%',
   });
