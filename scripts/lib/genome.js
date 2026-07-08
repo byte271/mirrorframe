@@ -86,6 +86,36 @@ function buildGenome(bundle) {
   // (for reveal) as the scroll-reveal state machine — not as @keyframes.
   const keyframeAnims = bundle.animations.filter(a =>
     a.type === 'CSSAnimation' || a.type === 'Animation');
+  const reveal = recoverReveal(bundle);
+  // Scroll tracks: per-node visual-prop samples across the scroll sweep.
+  // Nodes already driven by the recovered class-based reveal machine or by
+  // timer-driven (ambient) mutation are excluded — one recovered mechanism
+  // per node, never two fighting drivers.
+  const trackExcluded = new Set([
+    ...(reveal.detected ? reveal.revealedIds : []),
+    ...expandAmbient(bundle),
+  ]);
+  // Frame-sampled (time-driven) props vary with NO scroll input: any scroll
+  // "track" observed on the same (id, prop) is time aliasing, not scroll
+  // choreography — the frame track is the recovered mechanism, keep only it.
+  const frameTracks = bundle.frameTracks || [];
+  const frameKeys = new Set(frameTracks.map(t => `${t.id}|${t.prop}`));
+  const allTracks = (bundle.scrollTracks || []).filter(t =>
+    !trackExcluded.has(t.id) && !frameKeys.has(`${t.id}|${t.prop}`));
+  // One-way reveals (changed during the sweep, did not revert at scroll 0):
+  // their settled value IS the node's steady-state style — fold it into the
+  // captured style so reconstruction renders the revealed state, and keep only
+  // genuinely scroll-linked tracks for the replay runtime.
+  const persistentEffects = allTracks.filter(t => t.persistent);
+  const scrollTracks = allTracks.filter(t => !t.persistent);
+  if (persistentEffects.length) {
+    const byId = new Map();
+    (function idx(n) { byId.set(n.id, n); (n.children || []).forEach(idx); })(bundle.tree);
+    for (const t of persistentEffects) {
+      const node = byId.get(t.id);
+      if (node && node.style) node.style[t.prop] = t.value;
+    }
+  }
   const motion = {
     animations: keyframeAnims.map(a => ({
       target: a.targetId, classes: a.targetClasses,
@@ -94,7 +124,12 @@ function buildGenome(bundle) {
     })),
     transitions: dedupeTransitions(bundle.transitions),
     // Reveal behavior recovered from IntersectionObserver-driven class mutations.
-    reveal: recoverReveal(bundle),
+    reveal,
+    scrollTracks,
+    frameTracks,
+    persistentEffects: persistentEffects.map(t => ({ id: t.id, prop: t.prop })),
+    maxScroll: bundle.maxScroll || 0,
+    scrollShots: bundle.scrollShots || [],
   };
 
   // --- Interaction DNA: hover (from CSS rules) + click-driven state machines
@@ -103,6 +138,12 @@ function buildGenome(bundle) {
     selector: r.selector, declarations: r.declarations,
   }));
   const { behaviors, unclassified } = classifyBehaviors(bundle);
+  // Virtual-mouse recoveries: JS-driven hover deltas + linear cursor
+  // followers. Pointer-driven nodes that fit no linear model arrive as
+  // unclassified (fixed reason) from capture — surfaced, not guessed.
+  const hoverJs = bundle.hoverProbes || [];
+  const cursorFollowers = bundle.cursorFollowers || [];
+  for (const u of bundle.unclassifiedPointer || []) unclassified.push(u);
 
   // --- Structure with token references ---
   function annotate(node) {
@@ -115,6 +156,11 @@ function buildGenome(bundle) {
       id: node.id, tag: node.tag, classes: node.classes,
       text: node.text, href: node.href, rect: node.rect,
       wsBefore: node.wsBefore,
+      src: node.src, alt: node.alt,
+      naturalW: node.naturalW, naturalH: node.naturalH,
+      svgMarkup: node.svgMarkup,
+      media: node.media, poster: node.poster, frame: node.frame,
+      mediaAttrs: node.mediaAttrs,
       placeholder: node.placeholder || undefined, reason: node.reason,
       style: node.style, tokenRefs,
       children: node.children.map(annotate),
@@ -133,7 +179,9 @@ function buildGenome(bundle) {
       shadow: shadowRank,
     },
     motion,
-    interaction: { hover, behaviors, unclassified },
+    interaction: { hover, hoverJs, cursorFollowers, behaviors, unclassified },
+    assets: bundle.assets || { map: {}, misses: [] },
+    fontFaces: bundle.fontFaces || [],
     // Scope report: everything capture could not handle, with fixed reasons.
     // Verification uses this to mask/skip — nothing here is silently dropped.
     scope: {

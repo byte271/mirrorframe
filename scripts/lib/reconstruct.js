@@ -5,18 +5,35 @@
 
 const fs = require('fs');
 const path = require('path');
+const { rewriteCssUrls } = require('./assets');
 
 // Note: fixed 'width'/'height' are deliberately NOT baked — block elements
 // default to auto (fill) width; baking computed px causes overflow and defeats
 // responsiveness. We keep maxWidth/minHeight, which carry real layout intent.
 const LAYOUT_PROPS = [
   'display','position','top','right','bottom','left','flexDirection','flexWrap','justifyContent','alignItems','gap','listStyleType',
-  'maxWidth','minHeight','padding','margin','marginBottom','marginLeft',
+  'maxWidth','minHeight','padding','margin','marginTop','marginRight','marginBottom','marginLeft',
   'color','backgroundColor','fontFamily','fontSize','fontWeight','lineHeight','letterSpacing',
   'borderRadius','boxShadow','opacity','transform','transition','textDecorationLine',
   'fontStyle','textAlign','flex','cursor','border','zIndex','animation',
-  'borderTop','borderRight','borderBottom','borderLeft'
+  'borderTop','borderRight','borderBottom','borderLeft',
+  'backgroundImage','backgroundSize','backgroundPosition','backgroundRepeat',
+  'objectFit','objectPosition','textTransform','whiteSpace','overflow',
+  'mixBlendMode','filter','clipPath','textOverflow','verticalAlign',
+  'gridTemplateColumns','gridTemplateRows','gridAutoFlow','gridColumn','gridRow',
+  'rowGap','columnGap','justifySelf','alignSelf','alignContent','justifyItems',
+  'aspectRatio','float','order'
 ];
+
+// Asset-map context for the current generateCss run: url(...) references in
+// emitted values are rewritten to the locally bundled copies.
+let ASSET_MAP = {};
+const ASSET_PREFIX = '../';
+function cssValue(prop, v) {
+  if (typeof v === 'string' && v.includes('url('))
+    return rewriteCssUrls(v, ASSET_MAP, ASSET_PREFIX);
+  return v;
+}
 
 const camelToKebab = (s) => s.replace(/[A-Z]/g, m => '-' + m.toLowerCase());
 
@@ -59,7 +76,7 @@ function collectClassStyles(node, map, stateClasses) {
 // sidesteps it with atomic per-node rules.
 function collectIdStyles(node, map, stateClasses) {
   if (node.placeholder ||
-      (node.tag !== 'div' && node.tag !== 'span' &&
+      (node.tag !== 'div' &&
        identityClasses(node.classes, stateClasses).length === 0)) {
     map.set(node.id, node);
   }
@@ -72,7 +89,7 @@ function styleToCss(style, skip = []) {
     if (skip.includes(p)) continue;
     if (style[p] == null || style[p] === '') continue;
     if (p === 'animation' && (style[p] === 'none' || style[p].startsWith('none'))) continue;
-    lines.push(`  ${camelToKebab(p)}: ${style[p]};`);
+    lines.push(`  ${camelToKebab(p)}: ${cssValue(p, style[p])};`);
   }
   return lines.join('\n');
 }
@@ -154,7 +171,19 @@ function behaviorCss(genome, stateClasses) {
   return { css, strip };
 }
 
+function fontFaceCss(genome) {
+  return (genome.fontFaces || []).map(f => {
+    const src = f.local
+      ? `url("${ASSET_PREFIX}${f.local}")${f.format ? ` format("${f.format}")` : ''}`
+      : `url("${f.url}")${f.format ? ` format("${f.format}")` : ''}`;
+    return `@font-face {\n  font-family: "${f.family}";\n  font-weight: ${f.weight};\n` +
+           `  font-style: ${f.style};\n${f.display ? `  font-display: ${f.display};\n` : ''}` +
+           `${f.unicodeRange ? `  unicode-range: ${f.unicodeRange};\n` : ''}  src: ${src};\n}`;
+  }).join('\n\n');
+}
+
 function generateCss(genome) {
+  ASSET_MAP = (genome.assets && genome.assets.map) || {};
   const stateClasses = stateClassSet(genome);
   const root = Object.entries(genome.tokens.color)
     .map(([k, v]) => `  --${k}: ${v};`).join('\n');
@@ -183,6 +212,38 @@ function generateCss(genome) {
       }
       return `${sel} {\n${styleToCss(node.style, stripFor(sel))}\n}`;
     }).join('\n\n');
+
+  // <img> elements size explicitly: their captured box IS authored layout
+  // (the source file's intrinsic size need not match the rendered box).
+  const mediaRules = [];
+  (function findMedia(node) {
+    if (node.tag === 'img' || node.svgMarkup || node.media) {
+      const decls = [];
+      if (node.style.width) decls.push(`  width: ${node.style.width};`);
+      if (node.style.height) decls.push(`  height: ${node.style.height};`);
+      if ((node.tag === 'img' || node.media) && node.style.objectFit)
+        decls.push(`  object-fit: ${node.style.objectFit};`);
+      if (decls.length) mediaRules.push(`[data-mf-id="${node.id}"] {\n${decls.join('\n')}\n}`);
+    }
+    for (const c of node.children) findMedia(c);
+  })(genome.structure);
+  const mediaCss = mediaRules.join('\n\n');
+
+  // Empty leaf elements (no text, no children, not media) have no content to
+  // size them: a nonzero captured box IS authored CSS (shape divs drawn with
+  // borders/background). Bake width/height — auto would collapse them to 0.
+  const shapeRules = [];
+  (function findShapes(node) {
+    if (!node.children.length && !node.text && !node.placeholder &&
+        !node.svgMarkup && node.tag !== 'img' && node.tag !== 'br' &&
+        node.rect && node.rect.w * node.rect.h > 0 &&
+        node.style && node.style.width && node.style.height &&
+        node.style.width.endsWith('px') && node.style.height.endsWith('px')) {
+      shapeRules.push(`[data-mf-id="${node.id}"] {\n  width: ${node.style.width};\n  height: ${node.style.height};\n}`);
+    }
+    for (const c of node.children) findShapes(c);
+  })(genome.structure);
+  const shapeCss = shapeRules.join('\n\n');
 
   // A container whose in-flow content is entirely absolutely-positioned
   // children has no auto height; its computed height IS authored layout and
@@ -257,14 +318,30 @@ function generateCss(genome) {
   const hoverRules = genome.interaction.hover
     .map(h => `${h.selector} { ${h.declarations} }`).join('\n');
 
-  const keyframes = buildKeyframes(genome);
+  // JS-driven hover with style-only deltas compiles to a CSS :hover rule
+  // (same-node) or descendant rule (delta on another node under the trigger).
+  const hoverJsCss = (genome.interaction.hoverJs || []).flatMap(hp =>
+    Object.entries(hp.deltas).flatMap(([id, d]) => {
+      const decls = Object.entries(d)
+        .filter(([p]) => LAYOUT_PROPS.includes(p))
+        .map(([p, v]) => `  ${camelToKebab(p)}: ${cssValue(p, v.on)};`);
+      if (!decls.length) return [];
+      const sel = id === hp.trigger
+        ? `[data-mf-id="${id}"]:hover`
+        : `[data-mf-id="${hp.trigger}"]:hover [data-mf-id="${id}"]`;
+      return [`${sel} {\n${decls.join('\n')}\n}`];
+    })).join('\n');
 
-  return `:root {\n${root}\n}\n\n* { margin: 0; padding: 0; box-sizing: border-box; }\n\n` +
-         `${idRules}\n\n${classRules}\n\n/* abs-positioned container heights */\n${absContainerRules}\n\n` +
+  const keyframes = buildKeyframes(genome);
+  const fontFaces = fontFaceCss(genome);
+
+  return `/* bundled web fonts */\n${fontFaces}\n\n:root {\n${root}\n}\n\n* { margin: 0; padding: 0; box-sizing: border-box; }\n\n` +
+         `${idRules}\n\n${classRules}\n\n/* media sizing */\n${mediaCss}\n\n/* empty-leaf shape sizing */\n${shapeCss}\n\n/* abs-positioned container heights */\n${absContainerRules}\n\n` +
          `/* per-node overrides (context-driven divergence) */\n${overrideRules}\n\n` +
          `/* recovered scroll-reveal */\n${revealRules}\n\n` +
          `/* recovered interaction states */\n${behaviorRules}\n\n` +
          `/* recovered hover states */\n${hoverRules}\n\n` +
+         `/* recovered JS-driven hover (compiled to CSS) */\n${hoverJsCss}\n\n` +
          `/* recovered keyframes */\n${keyframes}\n`;
 }
 
@@ -273,9 +350,59 @@ function esc(s) { return String(s).replace(/[\\`$]/g, m => '\\' + m); }
 // Emit a React element tree as createElement calls (no JSX transform needed).
 function emitNode(node, indent) {
   const pad = '  '.repeat(indent);
+
+  // Inline SVG: re-emitted verbatim (it is already vector source). The
+  // wrapper contributes no box of its own.
+  if (node.svgMarkup) {
+    return `${pad}h("span", { style: { display: "contents" }, ` +
+           `dangerouslySetInnerHTML: { __html: ${JSON.stringify(node.svgMarkup)} } })`;
+  }
+
   const props = [];
   if (node.classes && node.classes.length) props.push(`className: "${node.classes.join(' ')}"`);
   if (node.href) props.push(`href: "${esc(node.href)}"`);
+  if (node.tag === 'img') {
+    const local = ASSET_MAP[node.src];
+    props.push(`src: ${JSON.stringify(local ? ASSET_PREFIX + local : (node.src || ''))}`);
+    if (node.alt) props.push(`alt: ${JSON.stringify(node.alt)}`);
+  }
+
+  // Bundled <video>: re-emitted as a real video with its captured playback
+  // attributes; forced muted so autoplay works everywhere. If the source
+  // could not be bundled or fetched, degrade to a still (poster, else the
+  // snapshotted frame) — the frame-level ground truth, never an empty box.
+  if (node.media === 'video') {
+    const localSrc = node.src && ASSET_MAP[node.src];
+    const localPoster = node.poster && ASSET_MAP[node.poster];
+    const poster = localPoster ? ASSET_PREFIX + localPoster : (node.poster || node.frame || '');
+    // A blob: source only existed inside the original page's session — it
+    // cannot be re-emitted; degrade to the still.
+    const usableSrc = localSrc || (node.src && !node.src.startsWith('blob:') ? node.src : null);
+    if (usableSrc) {
+      props.push(`src: ${JSON.stringify(localSrc ? ASSET_PREFIX + localSrc : node.src)}`);
+      if (poster) props.push(`poster: ${JSON.stringify(poster)}`);
+      const a = node.mediaAttrs || {};
+      if (a.autoplay) props.push('autoPlay: true');
+      props.push('muted: true');
+      if (a.loop) props.push('loop: true');
+      if (a.playsInline) props.push('playsInline: true');
+      if (a.controls) props.push('controls: true');
+      props.push(`"data-mf-id": "${node.id}"`);
+      return `${pad}h("video", { ${props.join(', ')} })`;
+    }
+    if (poster) {
+      props.push(`src: ${JSON.stringify(poster)}`);
+      props.push(`"data-mf-id": "${node.id}"`);
+      return `${pad}h("img", { ${props.join(', ')} })`;
+    }
+  }
+
+  // Snapshotted <canvas>: re-emitted as a still of the captured frame.
+  if (node.media === 'canvas' && node.frame) {
+    props.push(`src: ${JSON.stringify(node.frame)}`);
+    props.push(`"data-mf-id": "${node.id}"`);
+    return `${pad}h("img", { ${props.join(', ')} })`;
+  }
   props.push(`"data-mf-id": "${node.id}"`);
   const propStr = `{ ${props.join(', ')} }`;
 
@@ -284,7 +411,9 @@ function emitNode(node, indent) {
   for (const c of node.children) {
     // Re-emit inter-element whitespace: a word space between inline siblings
     // is layout-significant (JSX/createElement children have none by default).
-    if (c.wsBefore) kids.push('" "');
+    // wsBefore may carry a literal string when it holds non-collapsing
+    // whitespace (nbsp runs keep their full width).
+    if (c.wsBefore) kids.push(typeof c.wsBefore === 'string' ? JSON.stringify(c.wsBefore) : '" "');
     kids.push(emitNode(c, indent + 1));
   }
 
@@ -294,6 +423,7 @@ function emitNode(node, indent) {
 }
 
 function generateApp(genome) {
+  ASSET_MAP = (genome.assets && genome.assets.map) || {};
   const tree = emitNode(genome.structure, 3);
   const reveal = genome.motion.reveal;
   const revealEffect = (reveal.detected && reveal.hiddenStyle) ? `
@@ -337,13 +467,138 @@ function generateApp(genome) {
     return () => offs.forEach(([el, fn]) => el.removeEventListener('click', fn));
   }, []);` : '';
 
+  // Recovered scroll choreography: per-node visual-prop samples across the
+  // original's scroll range, replayed by interpolating between the two
+  // bracketing frames (numeric lerp for opacity + matrix transforms; step for
+  // everything else). Track samples are keyed on absolute document-coordinate
+  // scroll positions — layout convergence drives the reconstruction to the
+  // original's coordinates, so absolute mapping is exact. Rescaling by the
+  // height RATIO would corrupt the mapping whenever scrollHeight diverges for
+  // reasons that do not move content (e.g. negative-margin overlap overflow);
+  // fall back to proportional mapping only when the recon range is SHORTER
+  // than the sampled range (content would otherwise be unreachable).
+  const tracks = genome.motion.scrollTracks || [];
+  const scrollEffect = tracks.length ? `
+  React.useEffect(() => {
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const nums = (s) => (s.match(/-?[\\d.eE+]+/g) || []).map(Number);
+    const lerpValue = (va, vb, t) => {
+      if (va === vb) return va;
+      const isM = (s) => /^matrix(3d)?\\(/.test(s);
+      const na = va === 'none' && isM(vb) ? (vb.startsWith('matrix3d') ?
+        'matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)' : 'matrix(1,0,0,1,0,0)') : va;
+      const nb = vb === 'none' && isM(va) ? (va.startsWith('matrix3d') ?
+        'matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)' : 'matrix(1,0,0,1,0,0)') : vb;
+      if (isM(na) && isM(nb) && na.slice(0, 8) === nb.slice(0, 8)) {
+        const A = nums(na), B = nums(nb);
+        if (A.length === B.length)
+          return na.slice(0, na.indexOf('(') + 1) + A.map((x, i) => lerp(x, B[i], t)).join(',') + ')';
+      }
+      const fa = parseFloat(na), fb = parseFloat(nb);
+      if (!isNaN(fa) && !isNaN(fb) && String(fa) === na && String(fb) === nb)
+        return String(lerp(fa, fb, t));
+      return t < 0.5 ? na : nb;
+    };
+    const els = {};
+    for (const tr of TRACKS) els[tr.id] = document.querySelector('[data-mf-id="' + tr.id + '"]');
+    const apply = () => {
+      const reconMax = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      const y = reconMax >= MAX_SCROLL ? Math.min(window.scrollY, MAX_SCROLL)
+                                       : (window.scrollY / reconMax) * MAX_SCROLL;
+      for (const tr of TRACKS) {
+        const el = els[tr.id];
+        if (!el) continue;
+        const s = tr.samples;
+        let i = 0;
+        while (i < s.length - 2 && s[i + 1][0] <= y) i++;
+        const [y0, v0] = s[i], [y1, v1] = s[i + 1];
+        const t = y1 === y0 ? 0 : Math.min(1, Math.max(0, (y - y0) / (y1 - y0)));
+        el.style[tr.prop] = lerpValue(v0, v1, t);
+      }
+    };
+    let raf = null;
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(() => { raf = null; apply(); }); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    apply();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);` : '';
+
+  // JS-driven hover that toggles classes: replayed with real listeners
+  // (style-only hover deltas were compiled to CSS :hover rules instead).
+  const hoverClassProbes = (genome.interaction.hoverJs || []).map(hp => ({
+    trigger: hp.trigger,
+    classes: Object.entries(hp.deltas)
+      .filter(([, d]) => d.__class)
+      .map(([id, d]) => ({ id, off: d.__class.off, on: d.__class.on })),
+  })).filter(hp => hp.classes.length);
+  const hoverEffect = hoverClassProbes.length ? `
+  React.useEffect(() => {
+    const $ = (id) => document.querySelector('[data-mf-id="' + id + '"]');
+    const offs = [];
+    for (const hp of HOVER_CLASS) {
+      const el = $(hp.trigger);
+      if (!el) continue;
+      const enter = () => hp.classes.forEach(c => { const t = $(c.id); if (t) t.className = c.on; });
+      const leave = () => hp.classes.forEach(c => { const t = $(c.id); if (t) t.className = c.off; });
+      el.addEventListener('mouseenter', enter);
+      el.addEventListener('mouseleave', leave);
+      offs.push([el, enter, leave]);
+    }
+    return () => offs.forEach(([el, en, le]) => {
+      el.removeEventListener('mouseenter', en); el.removeEventListener('mouseleave', le);
+    });
+  }, []);` : '';
+
+  // Cursor followers: linear pointer-tracking recovered by the virtual mouse
+  // agent (tx = ax*mx + bx, ty = ay*my + by).
+  // Chronograph frame tracks: time-driven motion recorded frame-by-frame at
+  // capture, replayed verbatim as an infinitely-looping WAAPI animation with
+  // the sampled timestamps as keyframe offsets.
+  const frameTracks = genome.motion.frameTracks || [];
+  const frameEffect = frameTracks.length ? `
+  React.useEffect(() => {
+    const anims = [];
+    for (const tr of FRAME_TRACKS) {
+      const el = document.querySelector('[data-mf-id="' + tr.id + '"]');
+      if (!el || tr.frames.length < 2) continue;
+      const dur = tr.frames[tr.frames.length - 1][0] || 1;
+      const kfs = tr.frames.map(([t, v]) => ({
+        offset: Math.min(1, Math.max(0, t / dur)), [tr.prop]: v,
+      }));
+      try {
+        anims.push(el.animate(kfs, { duration: dur, iterations: Infinity, easing: 'linear' }));
+      } catch (e) { /* unanimatable sampled value; leave the static style */ }
+    }
+    return () => anims.forEach(a => a.cancel());
+  }, []);` : '';
+
+  const followers = genome.interaction.cursorFollowers || [];
+  const cursorEffect = followers.length ? `
+  React.useEffect(() => {
+    const els = FOLLOWERS.map(f => [document.querySelector('[data-mf-id="' + f.id + '"]'), f]);
+    const onMove = (e) => {
+      for (const [el, f] of els) {
+        if (!el) continue;
+        el.style.transform = 'translate3d(' + (f.ax * e.clientX + f.bx) + 'px,' +
+                             (f.ay * e.clientY + f.by) + 'px,0)';
+      }
+    };
+    window.addEventListener('mousemove', onMove, { passive: true });
+    return () => window.removeEventListener('mousemove', onMove);
+  }, []);` : '';
+
   return `import React from 'react';
 import { createRoot } from 'react-dom/client';
 const h = React.createElement;
 
 const BEHAVIORS = ${JSON.stringify(behaviors, null, 2)};
+const TRACKS = ${JSON.stringify(tracks)};
+const MAX_SCROLL = ${JSON.stringify(genome.motion.maxScroll || 0)};
+const HOVER_CLASS = ${JSON.stringify(hoverClassProbes)};
+const FOLLOWERS = ${JSON.stringify(followers)};
+const FRAME_TRACKS = ${JSON.stringify(frameTracks)};
 
-function App() {${revealEffect}${behaviorEffect}
+function App() {${revealEffect}${behaviorEffect}${scrollEffect}${hoverEffect}${cursorEffect}${frameEffect}
   return (
 ${tree}
   );
@@ -353,9 +608,38 @@ createRoot(document.getElementById('root')).render(h(App));
 `;
 }
 
+// Media stills (video first frame, canvas snapshot) arrive as data: URLs in
+// the genome. Inlining them into app.jsx would bloat the bundle with base64;
+// materialize them as real files in the shared assets dir and point the
+// structure at the local paths before emission.
+function materializeStills(genome, outDir) {
+  const assetsDir = path.join(outDir, 'assets');
+  let made = fs.existsSync(assetsDir);
+  const put = (dataUrl, id, kind) => {
+    const m = /^data:image\/(png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=]+)$/.exec(dataUrl || '');
+    if (!m) return dataUrl;
+    if (!made) { fs.mkdirSync(assetsDir, { recursive: true }); made = true; }
+    const name = `still-${id}-${kind}.${m[1] === 'jpeg' ? 'jpg' : m[1]}`;
+    fs.writeFileSync(path.join(assetsDir, name), Buffer.from(m[2], 'base64'));
+    return ASSET_PREFIX + 'assets/' + name;
+  };
+  (function walk(nodes) {
+    for (const node of nodes || []) {
+      if (node.media) {
+        if (node.frame && node.frame.startsWith('data:'))
+          node.frame = put(node.frame, node.id, 'frame');
+        if (node.poster && node.poster.startsWith('data:'))
+          node.poster = put(node.poster, node.id, 'poster');
+      }
+      walk(node.children);
+    }
+  })(Array.isArray(genome.structure) ? genome.structure : [genome.structure]);
+}
+
 async function reconstruct(genome, outDir) {
   const appDir = path.join(outDir, 'recon-app');
   fs.mkdirSync(appDir, { recursive: true });
+  materializeStills(genome, outDir);
 
   fs.writeFileSync(path.join(appDir, 'styles.css'), generateCss(genome));
   fs.writeFileSync(path.join(appDir, 'app.jsx'), generateApp(genome));

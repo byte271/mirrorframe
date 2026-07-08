@@ -11,6 +11,8 @@ const REASONS = {
   UNSUPPORTED_ELEMENT: 'unsupported-element',     // element tag outside the capture set (form/table/input/...)
   TIME_BUDGET_EXCEEDED: 'time-budget-exceeded',   // a bounded phase (probe/pipeline) hit its deadline
   SCALE_CAP_EXCEEDED: 'scale-cap-exceeded',       // node or candidate count beyond the configured cap
+  PROBE_ERROR: 'probe-error',                     // an in-page probe threw (page script conflict); partial results kept
+  TIME_VARYING_MEDIA: 'time-varying-media',       // bundled video/canvas — pixels depend on playback instant, masked from diffs
 };
 
 // A page-level "detected, out of scope / cannot proceed" outcome. Not a crash:

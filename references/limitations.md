@@ -3,39 +3,44 @@
 Read this before promising results to anyone. Scope is intentionally narrow and
 verified; see `roadmap.md` for what comes next and what is research-level.
 
-- **No Canvas / WebGL / WebGPU / shader / post-processing reconstruction.** Pages whose
-  visuals are painted into a canvas will reconstruct as an empty box.
-- **No physics, inertia, or spring recovery.**
-- **Behavior graphing covers class-toggle state machines driven by click and scroll
-  only** — no drags, JS hover effects, keyboard interactions, inline-style mutations,
-  or DOM insertion/removal state machines.
+- **No live Canvas / WebGL / WebGPU re-render.** Since v0.2 a `<canvas>`
+  reconstructs as a pixel-true still of its captured frame (and `<video>` as a
+  bundled playing element) — but the draw/shader program itself is not recovered.
+- **No physics, inertia, or spring recovery.** The v0.2 frame sampler replays
+  observed motion verbatim (bounded window, looped); it does not fit curves or
+  recover the generating simulation.
+- **Behavior graphing covers class-toggle state machines driven by click, scroll,
+  and hover** — no drags, keyboard interactions, inline-style-mutation machines
+  (beyond frame-sampled visual props), or DOM insertion/removal state machines.
 - **One output target: React + plain CSS.** No Vue/Svelte/etc. yet.
-- **No images, background-images, web-font files, grid layouts, pseudo-elements,
-  responsive breakpoints, or cross-origin stylesheets.** Best results on flexbox
-  layouts with system font stacks.
+- **Single-viewport clone.** Responsive breakpoints are not re-captured at multiple
+  widths. Cross-origin stylesheets whose rules cannot be read stay out of scope.
 - **Auto-correction patches computed-style drift only.** Layout drift caused by
   untracked properties is reported as `failed`, not silently absorbed.
 - **Proven on the included fixtures** (self-authored, no external assets) and
-  spot-validated against real public pages (v0.1.2 Track B). "Any website" is
+  spot-validated against real public pages (v0.1.2 Track B; v0.2.0 against
+  complex production pages end-to-end). "Any website" is
   explicitly not claimed — treat runs against arbitrary sites as exploratory and
   read the per-node report before trusting the output.
 
-## Graceful scope detection (v0.1.2)
+## Graceful scope detection (v0.1.2, extended in v0.2.0)
 
 Out-of-scope input no longer crashes or silently disappears. Every skipped node,
 probe, or page carries exactly one reason from a fixed taxonomy
-(`scripts/lib/reasons.js`); free-text excuses are not allowed anywhere:
+(`scripts/lib/reasons.js`, 10 reasons); free-text excuses are not allowed anywhere:
 
 | Reason | Trigger |
 |---|---|
 | `unclassified-behavior` | interaction/mutation that matches no known pattern; includes timer-driven ("ambient") mutations such as autoplay carousels, detected by an input-free MutationObserver watch and expanded to class-sharing siblings |
-| `out-of-scope-medium` | `<canvas>`, `<video>`, `<img>`, `<svg>`, same-origin `<iframe>`, other replaced media |
+| `out-of-scope-medium` | replaced media outside the bundled set (`<audio>`, `<object>`, `<embed>`, WebGL without DOM) — since v0.2, `<img>`/`<svg>`/`<video>`/`<canvas>` are captured, not skipped |
 | `cross-origin-content` | iframe with inaccessible `contentDocument`; cross-origin stylesheets whose rules can't be read |
 | `network-timeout` | navigation never reached `domcontentloaded` within the bound |
 | `unparseable-markup` | document with no usable `<body>` |
 | `unsupported-element` | renderable element outside the capture tag set |
 | `time-budget-exceeded` | probe/replay/pipeline wall-clock budget exhausted (probe 60s, pipeline watchdog 300s) |
 | `scale-cap-exceeded` | node cap (1500) or interaction-candidate cap (200) reached |
+| `probe-error` (v0.2) | an in-page probe threw on a candidate (page-script conflict); that candidate is skipped, the sweep continues, partial results are kept |
+| `time-varying-media` (v0.2) | bundled video/canvas or frame-sampled motion — the mechanism is replicated but pixels depend on the playback instant; masked from diffs, node statused `time-varying-replicated` |
 
 Skipped elements keep their layout footprint via placeholders, are masked out of
 the pixel diff, and are itemized in the per-node report — the aggregate never
@@ -70,6 +75,12 @@ hides them. Navigation falls back from `networkidle` (30s) to
 
 - `animated-unstable`: an infinite animation's pixels depend on screenshot phase; the
   node is excluded from pass/fail rather than averaged in.
+- `time-varying-replicated` (v0.2): bundled video/canvas or frame-sampled motion —
+  replicated mechanism, phase-dependent pixels, masked with `time-varying-media`.
+- Sub-pixel text-wrap drift: a text block whose line wrapping differs by a word due
+  to font-rasterization metrics can score just under threshold (`failed` with
+  `style-drift-not-patchable`) even though every tracked computed style matches;
+  inspect its `diff-*.png` before treating it as a real defect.
 - `style-verified`: sub-pixel glyph anti-aliasing residual on tiny nodes while all
   tracked computed styles match exactly.
 - `hidden-at-capture`: the node starts hidden (closed accordion/modal/inactive tab

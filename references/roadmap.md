@@ -21,10 +21,26 @@ does not exist as reliable tooling today and is not claimed as buildable now.
 - OSS hygiene: MIT license, fixture/dependency license audit, clean-clone README,
   version 0.1.0, `npm run verify` release gate.
 
-## v0.2 — Widen the static + declared-motion tier (feasible now, engineering work)
+## Done in v0.2.0 (verified by `npm run verify` + live spot-validation runs)
 
-- **Broader capture**: images, background-images, web fonts (download + subset), SVG
-  passthrough, grid layouts, pseudo-elements (via `getComputedStyle(el, '::before')`),
+- **Asset bundling**: images, background-images, web fonts, SVG passthrough —
+  downloaded and rewritten to local copies with bounded budgets.
+- **Media bundling**: `<video>` source + poster bundled and re-emitted as a real
+  element (still fallback); `<canvas>` snapshotted as a pixel-true still.
+- **Chronograph frame sampler** (pulled forward from the v0.3 sampled-motion tier,
+  verbatim-replay variant): rAF/JS-driven motion recorded at every animation frame
+  for a bounded window and replayed as looping WAAPI animations. No curve fitting —
+  the observed frames ARE the artifact.
+- **Scroll choreography** (pulled forward from v0.3): scroll-position style tracks
+  sampled at multiple depths, re-emitted, and verified by scroll replay.
+- **Probe robustness**: per-candidate error isolation (`probe-error`) instead of
+  whole-sweep aborts; JS hover probes; cursor-follower recovery.
+- **Honest time-varying verification**: `time-varying-replicated` status +
+  `time-varying-media` masking for content whose pixels depend on playback phase.
+
+## Remaining v0.2-era items (feasible now, engineering work)
+
+- **Broader capture**: pseudo-elements (via `getComputedStyle(el, '::before')`),
   media-query breakpoints (re-capture at N viewports, diff computed styles → responsive rules).
 - **Behavior graphing v1.5**: enumerate listeners via CDP `DOMDebugger.getEventListeners`;
   extend the probe beyond click to focus/input/keyboard; recover state machines expressed

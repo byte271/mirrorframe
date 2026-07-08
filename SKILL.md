@@ -49,7 +49,10 @@ The stages, in order (all automatic within `run`):
    computed styles per node, keyframe animations, transitions, hover rules; a scroll
    probe detects scroll-reveal state machines; a synthetic click probe discovers
    click-driven state machines (accordion/tabs/modal) and screenshots each recovered
-   state as ground truth (`state-*.png`).
+   state as ground truth (`state-*.png`). Assets (images, background-images, web
+   fonts, video sources/posters) are downloaded and bundled locally; canvases are
+   snapshotted as stills; a frame sampler records rAF-driven motion at every
+   animation frame for a bounded window (v0.2).
 2. **Genome** → `<out>/genome.json`. Clusters tokens (color/type/spacing/radius/shadow),
    compiles motion DNA (animations/transitions) and interaction DNA (`interaction.
    behaviors[]` — recovered state machines typed `reveal`/`toggle`/`exclusive`/`pair`;
@@ -79,12 +82,17 @@ per-node level first; never report only the aggregate:
     failure; report it explicitly with its similarity, never average it away.
   - `animated-unstable` — node has an infinite animation; pixels depend on screenshot
     phase, so it is excluded from pass/fail. Expected, not a failure.
+  - `time-varying-replicated` (v0.2) — bundled video/canvas or frame-sampled motion:
+    the mechanism IS reproduced in the reconstruction, but the pixels depend on the
+    playback instant, so the region is masked (reason `time-varying-media`).
+    Expected, not a failure.
   - `hidden-at-capture` — node starts hidden (closed accordion/modal, inactive tab
     panel); verified via state replay instead. Expected, not a failure. Its
     `similarity` is `null` because no initial-screenshot pixels exist to compare.
   - `skipped` — node is out of scope, carrying one reason from the fixed taxonomy in
-    `scripts/lib/reasons.js` (e.g. `out-of-scope-medium` for images/iframes/canvas,
-    `unclassified-behavior` for timer-driven mutations like autoplay carousels).
+    `scripts/lib/reasons.js` (e.g. `cross-origin-content` for inaccessible iframes,
+    `unclassified-behavior` for timer-driven mutations like autoplay carousels,
+    `probe-error` for a candidate whose synthetic probe threw in page script).
     Its region is masked from the pixel diff and its layout footprint is preserved
     by a placeholder. Expected on real pages; report the reasons, never hide them.
 - **Per interaction state** (`states[]`): each recovered behavior state is replayed on
@@ -95,7 +103,8 @@ per-node level first; never report only the aggregate:
   similarity. Report these *alongside* the per-node results, never instead of them.
 
 Success = zero `failed` nodes and zero failed states. `style-verified`,
-`animated-unstable`, `hidden-at-capture`, and `skipped` (with its reason) are
+`animated-unstable`, `hidden-at-capture`, `time-varying-replicated`, and
+`skipped` (with its reason) are
 acceptable statuses when explained. The whole-page outcome is in `summary.json`
 (`pageStatus`: `success` / `partial` / `skipped` / `crash`; exit codes 0/3/4).
 A page that never loads is `skipped:network-timeout`, not a crash.
@@ -114,23 +123,26 @@ Bundled fixtures: `fixtures/northlight` (scroll reveal + keyframes + hover),
 `fixtures/accordion` (toggle), `fixtures/tabs` (exclusive), `fixtures/modal` (pair),
 plus stress fixtures `stress-scale` (230 nodes), `stress-edgecss` (container
 queries/`:has()`), `stress-iframe` (same-origin + sandboxed), `stress-flaky`
-(404/hung assets), `stress-carousel` (autoplay → skipped, not learned).
+(404/hung assets), `stress-carousel` (autoplay → skipped, not learned), and
+`stress-frames` (rAF inline-style motion + animated canvas → frame tracks +
+stills + time-varying masking; v0.2).
 
 ## When to consult references/
 
 - `references/behavior-patterns.md` — what each recovered behavior type
   (reveal/toggle/exclusive/pair) means, how it is detected, its genome shape, and what
   behavior graphing does NOT cover.
-- `references/limitations.md` — hard scope limits (no canvas/WebGL, no images/web
-  fonts/grid, React-only output), expected non-pass statuses, and legal/provenance
-  rules. Read before promising results on an arbitrary site.
+- `references/limitations.md` — hard scope limits (no live canvas/WebGL re-render,
+  React-only output, single viewport), expected non-pass statuses, and
+  legal/provenance rules. Read before promising results on an arbitrary site.
 - `references/roadmap.md` — what is planned vs. research-level; consult when a user
   asks for something out of scope.
 
 ## Failure triage
 
-- Reconstruction looks empty → the page likely paints via canvas/WebGL or loads
-  cross-origin styles (out of scope; check `references/limitations.md`).
+- Reconstruction looks empty → the page likely loads cross-origin styles or paints
+  everything into WebGL without DOM (check `references/limitations.md`); plain
+  canvases and videos reconstruct as stills/bundled media since v0.2.
 - A behavior was not recovered → it probably isn't a class-toggle machine driven by
   click/scroll; check `capture.json`'s probe evidence and the pattern catalog.
 - `failed` nodes → inspect `<out>/diff-*.png` residual maps and the node's entry in
