@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harborlane menu — Mirrorframe responsive fixture</title>
+<style>
+  :root {
+    --ink: #262220;
+    --muted: #786f68;
+    --bg: #f7f4f0;
+    --card: #ffffff;
+    --accent: #b4552d;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Palatino Linotype', Palatino, serif;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 48px 24px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 34px; margin-bottom: 6px; }
+  .lede { color: var(--muted); font-size: 15px; margin-bottom: 36px; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 18px;
+  }
+  .dish {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 22px;
+    border-top: 4px solid var(--accent);
+  }
+  .dish h2 { font-size: 18px; margin-bottom: 8px; }
+  .dish p { color: var(--muted); font-size: 14px; line-height: 1.7; }
+  .dish .price { color: var(--accent); font-size: 20px; font-weight: 700; margin-top: 12px; }
+
+  .banner {
+    margin-top: 32px;
+    background: #2e2723;
+    color: #f3ece5;
+    border-radius: 12px;
+    padding: 26px 30px;
+    font-size: 18px;
+  }
+
+  /* Tablet: two columns, tighter banner */
+  @media (max-width: 768px) {
+    .grid { grid-template-columns: 1fr 1fr; }
+    h1 { font-size: 28px; }
+    .banner { font-size: 15px; padding: 20px 22px; }
+  }
+
+  /* Phone: single column, accent flips to the side */
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: 1fr; gap: 14px; }
+    h1 { font-size: 24px; }
+    .dish { border-top-width: 0px; border-left: 4px solid var(--accent); border-radius: 8px; }
+    .dish .price { font-size: 17px; }
+    .banner { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Harborlane supper menu</h1>
+    <p class="lede">Seasonal plates from the fictional Harborlane kitchen. Built as a Mirrorframe responsive fixture: the grid reflows at 768px and 480px.</p>
+
+    <div class="grid">
+      <div class="dish">
+        <h2>Smoked trout board</h2>
+        <p>House-smoked trout with rye crisps, pickled shallot, and a horseradish cream that does most of the talking.</p>
+        <div class="price">$16</div>
+      </div>
+      <div class="dish">
+        <h2>Charred leek risotto</h2>
+        <p>Carnaroli rice folded with charred leeks, lemon zest, and an unreasonable amount of parmesan.</p>
+        <div class="price">$19</div>
+      </div>
+      <div class="dish">
+        <h2>Cider-braised pork</h2>
+        <p>Shoulder braised in dry cider until it forgets it was ever a solid, over mashed root vegetables.</p>
+        <div class="price">$24</div>
+      </div>
+      <div class="dish">
+        <h2>Roasted squash salad</h2>
+        <p>Delicata squash, bitter greens, toasted seeds, and a maple-sherry vinaigrette built for October.</p>
+        <div class="price">$14</div>
+      </div>
+      <div class="dish">
+        <h2>Mussels and frites</h2>
+        <p>A kilo of mussels in white wine and garlic, with fries you will fight over and aioli you will not share.</p>
+        <div class="price">$21</div>
+      </div>
+      <div class="dish">
+        <h2>Burnt honey tart</h2>
+        <p>Burnt-honey custard in a buckwheat crust, finished with flaky salt and a stripe of creme fraiche.</p>
+        <div class="price">$11</div>
+      </div>
+    </div>
+
+    <div class="banner">Kitchen open until 11pm. The menu changes with the market — the burnt honey tart does not.</div>
+  </div>
+</body>
+</html>

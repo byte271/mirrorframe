@@ -36,6 +36,7 @@ node scripts/mirrorframe.js run --dir /path/to/page-directory --out ./mf-out/nam
 # or, for a live URL you have rights to:
 node scripts/mirrorframe.js run --url https://example.com --out ./mf-out/name
 # optional viewport: --width 1280 --height 800   (defaults shown)
+# optional responsive re-capture: --breakpoints 480,768   (v0.4)
 ```
 
 - `--dir` expects a directory containing an `index.html`; it is served over a local
@@ -56,7 +57,11 @@ The stages, in order (all automatic within `run`):
    for sequential-stagger recovery, and a virtual-mouse agent grid-samples the
    pointer to recover mouse-movement choreography (parallax/tilt/magnetic) plus
    each node's smoothing time constant, with ground-truth pointer checkpoints
-   (`original-pointer-*.png`) (v0.3).
+   (`original-pointer-*.png`) (v0.3). ::before/::after pseudo-elements are
+   captured per originating element; CSS :focus rules plus a bounded keyboard
+   agent recover focus styling with real-Tab ground-truth shots
+   (`original-focus-*.png`); `--breakpoints` re-captures the page at extra
+   viewport widths with per-width ground truth (`original-bp-*.png`) (v0.4).
 2. **Genome** → `<out>/genome.json`. Clusters tokens (color/type/spacing/radius/shadow),
    compiles motion DNA (animations/transitions) and interaction DNA (`interaction.
    behaviors[]` — recovered state machines typed `reveal`/`toggle`/`exclusive`/`pair`;
@@ -106,10 +111,14 @@ per-node level first; never report only the aggregate:
 - **Per pointer state** (`pointerStates[]`, v0.3): each recovered pointer checkpoint is
   replayed on the reconstruction with the same real mouse move (settle time scaled to
   the largest recovered smoothing tau) and diffed; pass threshold 0.98.
+- **Per focus state** (`focusStates[]`, v0.4): each captured Tab stop is replayed on
+  the reconstruction with the same number of real Tab presses and diffed; 0.98.
+- **Per breakpoint state** (`breakpointStates[]`, v0.4): the reconstruction is resized
+  to each captured breakpoint width and diffed against the original at that width; 0.98.
 - **Aggregate** (`summary.similarity.fold` / `.full`): whole-viewport and full-page
   similarity. Report these *alongside* the per-node results, never instead of them.
 
-Success = zero `failed` nodes and zero failed interaction/scroll/pointer states. `style-verified`,
+Success = zero `failed` nodes and zero failed interaction/scroll/pointer/focus/breakpoint states. `style-verified`,
 `animated-unstable`, `hidden-at-capture`, `time-varying-replicated`, and
 `skipped` (with its reason) are
 acceptable statuses when explained. The whole-page outcome is in `summary.json`
@@ -135,7 +144,11 @@ queries/`:has()`), `stress-iframe` (same-origin + sandboxed), `stress-flaky`
 stills + time-varying masking; v0.2), `stress-stagger` (CSS-delay + JS-timer
 sequential scroll reveals → per-element curve + stagger recovery; v0.3), and
 `stress-pointer` (parallax layers, 3D tilt card, smooth lerp follower → pointer
-field fitting + tau recovery + pointer-state replay; v0.3).
+field fitting + tau recovery + pointer-state replay; v0.3), `stress-pseudo`
+(::before/::after badges, dots, underlines; v0.4), `stress-keyboard`
+(:focus/:focus-visible + JS focus styling → real-Tab focus replay; v0.4), and
+`stress-responsive` (grid reflow at 768/480px → @media recovery + breakpoint
+replay, run with `--breakpoints 480,768`; v0.4).
 
 ## When to consult references/
 
@@ -143,7 +156,7 @@ field fitting + tau recovery + pointer-state replay; v0.3).
   (reveal/toggle/exclusive/pair) means, how it is detected, its genome shape, and what
   behavior graphing does NOT cover.
 - `references/limitations.md` — hard scope limits (no live canvas/WebGL re-render,
-  React-only output, single viewport), expected non-pass statuses, and
+  React-only output), expected non-pass statuses, and
   legal/provenance rules. Read before promising results on an arbitrary site.
 - `references/roadmap.md` — what is planned vs. research-level; consult when a user
   asks for something out of scope.

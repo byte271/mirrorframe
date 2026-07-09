@@ -54,13 +54,28 @@ does not exist as reliable tooling today and is not claimed as buildable now.
   on the reconstruction with real mouse moves and pixel-diffed, gated by
   `npm run verify`; settle-aware replay screenshots throughout.
 
-## Remaining v0.2-era items (feasible now, engineering work)
+## Done in v0.4.0 (verified by `npm run verify`)
 
-- **Broader capture**: pseudo-elements (via `getComputedStyle(el, '::before')`),
-  media-query breakpoints (re-capture at N viewports, diff computed styles → responsive rules).
+- **Pseudo-element capture**: ::before/::after computed styles read per originating
+  element and re-emitted as per-node pseudo rules; pseudo background-images bundled.
+- **Keyboard/focus recovery**: :focus/:focus-visible/:focus-within CSS recovered
+  verbatim; a bounded keyboard agent recovers JS-driven focus styling (style deltas
+  → CSS :focus rules, class toggles → real focus/blur listeners); real-Tab
+  focus-state verification tier.
+- **Responsive breakpoints**: `--breakpoints` multi-viewport re-capture, per-node
+  computed-style diffs emitted as real @media rules, per-width breakpoint-state
+  verification tier.
+- **Security hardening**: local-server path-traversal/method hardening, asset-fetcher
+  SSRF guard + extension sanitization, clean `npm audit`.
+
+## Remaining feasible-now items (engineering work)
+
 - **Behavior graphing v1.5**: enumerate listeners via CDP `DOMDebugger.getEventListeners`;
-  extend the probe beyond click to focus/input/keyboard; recover state machines expressed
-  as inline-style mutation or DOM insertion/removal (currently class-toggle only).
+  extend the probe to input/typing and arrow-key/shortcut machines; recover state machines
+  expressed as inline-style mutation or DOM insertion/removal (currently class-toggle only).
+- **Authored-threshold inference**: read the page's own @media rule conditions from
+  same-origin stylesheets so recovered breakpoints land on the authored thresholds
+  rather than the sampled widths.
 - **Component induction**: cluster repeated subtrees (the three cards) into one
   parametrized component with props. Tree edit-distance clustering is standard engineering.
 - **Correction attribution v1.5**: extend auto-correction beyond computed-style drift to
@@ -88,7 +103,7 @@ Prereq: none — all APIs exist today (CDP, WAAPI, IntersectionObserver, esbuild
 Prereq: a stable per-frame sampling harness with jitter compensation; a curve-fitting
 library validated against a corpus of known easings.
 
-## v0.4+ — GPU tier + self-improving loop at scale (research-level)
+## v0.5+ — GPU tier + self-improving loop at scale (research-level)
 
 - **Shader Mirror**: intercept WebGL/WebGPU via API wrapping to capture programs,
   uniforms, and draw calls. Re-executing captured shaders verbatim is feasible;

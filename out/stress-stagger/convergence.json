@@ -1,0 +1,637 @@
+{
+  "layout": {
+    "passes": 1,
+    "baked": 2
+  },
+  "maskedRegions": 0,
+  "fold": {
+    "width": 1280,
+    "height": 800,
+    "mismatchedPixels": 0,
+    "totalPixels": 1024000,
+    "residual": 0,
+    "similarity": 1,
+    "maskedPixels": 0,
+    "timeVaryingPixels": 0
+  },
+  "full": {
+    "width": 1280,
+    "height": 2372,
+    "mismatchedPixels": 0,
+    "totalPixels": 3036160,
+    "residual": 0,
+    "similarity": 1,
+    "maskedPixels": 0,
+    "timeVaryingPixels": 0
+  },
+  "correction": {
+    "attempted": [],
+    "patchedProps": {},
+    "applied": false,
+    "styleVerified": []
+  },
+  "nodes": [
+    {
+      "id": "n0",
+      "tag": "body",
+      "classes": null,
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 1280,
+        "h": 2371.546875
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n1",
+      "tag": "div",
+      "classes": "hero",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "w": 1280,
+        "h": 800
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n2",
+      "tag": "h1",
+      "classes": null,
+      "rect": {
+        "x": 72,
+        "y": 300.21875,
+        "w": 700,
+        "h": 118.78125
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n3",
+      "tag": "p",
+      "classes": null,
+      "rect": {
+        "x": 72,
+        "y": 439,
+        "w": 520,
+        "h": 60.78125
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n4",
+      "tag": "section",
+      "classes": null,
+      "rect": {
+        "x": 0,
+        "y": 800,
+        "w": 1280,
+        "h": 730.390625
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n5",
+      "tag": "h2",
+      "classes": "fade-item",
+      "rect": {
+        "x": 72,
+        "y": 920,
+        "w": 1136,
+        "h": 54.390625
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n6",
+      "tag": "div",
+      "classes": "grid",
+      "rect": {
+        "x": 72,
+        "y": 1022.390625,
+        "w": 1136,
+        "h": 388
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n7",
+      "tag": "div",
+      "classes": "tile.fade-item",
+      "rect": {
+        "x": 72,
+        "y": 1022.390625,
+        "w": 360,
+        "h": 180
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n8",
+      "tag": "h3",
+      "classes": null,
+      "rect": {
+        "x": 101,
+        "y": 1091.390625,
+        "w": 302,
+        "h": 32
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n9",
+      "tag": "p",
+      "classes": null,
+      "rect": {
+        "x": 101,
+        "y": 1135.390625,
+        "w": 302,
+        "h": 24
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n10",
+      "tag": "div",
+      "classes": "tile.fade-item",
+      "rect": {
+        "x": 460,
+        "y": 1022.390625,
+        "w": 360,
+        "h": 180
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n11",
+      "tag": "h3",
+      "classes": null,
+      "rect": {
+        "x": 489,
+        "y": 1091.390625,
+        "w": 302,
+        "h": 32
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n12",
+      "tag": "p",
+      "classes": null,
+      "rect": {
+        "x": 489,
+        "y": 1135.390625,
+        "w": 302,
+        "h": 24
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n13",
+      "tag": "div",
+      "classes": "tile.fade-item",
+      "rect": {
+        "x": 848,
+        "y": 1022.390625,
+        "w": 360,
+        "h": 180
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n14",
+      "tag": "h3",
+      "classes": null,
+      "rect": {
+        "x": 877,
+        "y": 1091.390625,
+        "w": 302,
+        "h": 32
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n15",
+      "tag": "p",
+      "classes": null,
+      "rect": {
+        "x": 877,
+        "y": 1135.390625,
+        "w": 302,
+        "h": 24
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n16",
+      "tag": "div",
+      "classes": "tile.fade-item",
+      "rect": {
+        "x": 72,
+        "y": 1230.390625,
+        "w": 360,
+        "h": 180
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n17",
+      "tag": "h3",
+      "classes": null,
+      "rect": {
+        "x": 101,
+        "y": 1299.390625,
+        "w": 302,
+        "h": 32
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n18",
+      "tag": "p",
+      "classes": null,
+      "rect": {
+        "x": 101,
+        "y": 1343.390625,
+        "w": 302,
+        "h": 24
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n19",
+      "tag": "div",
+      "classes": "tile.fade-item",
+      "rect": {
+        "x": 460,
+        "y": 1230.390625,
+        "w": 360,
+        "h": 180
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n20",
+      "tag": "h3",
+      "classes": null,
+      "rect": {
+        "x": 489,
+        "y": 1299.390625,
+        "w": 302,
+        "h": 32
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n21",
+      "tag": "p",
+      "classes": null,
+      "rect": {
+        "x": 489,
+        "y": 1343.390625,
+        "w": 302,
+        "h": 24
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n22",
+      "tag": "div",
+      "classes": "tile.fade-item",
+      "rect": {
+        "x": 848,
+        "y": 1230.390625,
+        "w": 360,
+        "h": 180
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n23",
+      "tag": "h3",
+      "classes": null,
+      "rect": {
+        "x": 877,
+        "y": 1299.390625,
+        "w": 302,
+        "h": 32
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n24",
+      "tag": "p",
+      "classes": null,
+      "rect": {
+        "x": 877,
+        "y": 1343.390625,
+        "w": 302,
+        "h": 24
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n25",
+      "tag": "section",
+      "classes": null,
+      "rect": {
+        "x": 0,
+        "y": 1530.390625,
+        "w": 1280,
+        "h": 658.765625
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n26",
+      "tag": "h2",
+      "classes": "fade-item",
+      "rect": {
+        "x": 72,
+        "y": 1650.390625,
+        "w": 1136,
+        "h": 54.390625
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n27",
+      "tag": "div",
+      "classes": "row-list",
+      "rect": {
+        "x": 72,
+        "y": 1752.78125,
+        "w": 640,
+        "h": 316.375
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n28",
+      "tag": "div",
+      "classes": "row.fade-item.js-seq",
+      "rect": {
+        "x": 72,
+        "y": 1752.78125,
+        "w": 640,
+        "h": 65.59375
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n29",
+      "tag": "strong",
+      "classes": null,
+      "rect": {
+        "x": 99,
+        "y": 1812.78125,
+        "w": 72.015625,
+        "h": 17
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n30",
+      "tag": "span",
+      "classes": null,
+      "rect": {
+        "x": 175.46875,
+        "y": 1812.78125,
+        "w": 253.46875,
+        "h": 17
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n31",
+      "tag": "div",
+      "classes": "row.fade-item.js-seq",
+      "rect": {
+        "x": 72,
+        "y": 1836.375,
+        "w": 640,
+        "h": 65.59375
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n32",
+      "tag": "strong",
+      "classes": null,
+      "rect": {
+        "x": 99,
+        "y": 1896.375,
+        "w": 71.109375,
+        "h": 17
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n33",
+      "tag": "span",
+      "classes": null,
+      "rect": {
+        "x": 174.5625,
+        "y": 1896.375,
+        "w": 128.421875,
+        "h": 17
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n34",
+      "tag": "div",
+      "classes": "row.fade-item.js-seq",
+      "rect": {
+        "x": 72,
+        "y": 1919.96875,
+        "w": 640,
+        "h": 65.59375
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n35",
+      "tag": "strong",
+      "classes": null,
+      "rect": {
+        "x": 99,
+        "y": 1979.96875,
+        "w": 82.6875,
+        "h": 17
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n36",
+      "tag": "span",
+      "classes": null,
+      "rect": {
+        "x": 186.140625,
+        "y": 1979.96875,
+        "w": 169.265625,
+        "h": 17
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n37",
+      "tag": "div",
+      "classes": "row.fade-item.js-seq",
+      "rect": {
+        "x": 72,
+        "y": 2003.5625,
+        "w": 640,
+        "h": 65.59375
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n38",
+      "tag": "strong",
+      "classes": null,
+      "rect": {
+        "x": 99,
+        "y": 2063.5625,
+        "w": 73.78125,
+        "h": 17
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n39",
+      "tag": "span",
+      "classes": null,
+      "rect": {
+        "x": 177.234375,
+        "y": 2063.5625,
+        "w": 164.28125,
+        "h": 17
+      },
+      "similarity": 1,
+      "status": "pass"
+    },
+    {
+      "id": "n40",
+      "tag": "footer",
+      "classes": null,
+      "rect": {
+        "x": 0,
+        "y": 2189.15625,
+        "w": 1280,
+        "h": 182.390625
+      },
+      "similarity": 1,
+      "status": "pass"
+    }
+  ],
+  "states": [],
+  "scrollStates": [
+    {
+      "fraction": 0.25,
+      "scrollY": 393,
+      "reconScrollY": 393,
+      "similarity": 1,
+      "timeVaryingPixels": 0,
+      "status": "pass"
+    },
+    {
+      "fraction": 0.5,
+      "scrollY": 786,
+      "reconScrollY": 786,
+      "similarity": 1,
+      "timeVaryingPixels": 0,
+      "status": "pass"
+    },
+    {
+      "fraction": 0.75,
+      "scrollY": 1179,
+      "reconScrollY": 1179,
+      "similarity": 1,
+      "timeVaryingPixels": 0,
+      "status": "pass"
+    }
+  ],
+  "pointerStates": [],
+  "summary": {
+    "nodes": {
+      "pass": 41,
+      "styleVerified": 0,
+      "corrected": 0,
+      "failed": 0,
+      "animatedUnstable": 0,
+      "hiddenAtCapture": 0,
+      "timeVaryingReplicated": 0,
+      "skipped": 0
+    },
+    "scope": {
+      "skips": [],
+      "ambientIds": [],
+      "skippedProbes": [],
+      "crossOriginSheets": 0,
+      "navFallback": false
+    },
+    "states": {
+      "pass": 0,
+      "fail": 0
+    },
+    "scrollStates": {
+      "pass": 3,
+      "fail": 0
+    },
+    "pointerStates": {
+      "pass": 0,
+      "fail": 0
+    },
+    "assets": {
+      "bundled": 0,
+      "misses": 0,
+      "fontFaces": 0
+    },
+    "thresholds": {
+      "nodePass": 0.98,
+      "statePass": 0.98,
+      "pixelmatch": 0.12
+    }
+  }
+}

@@ -13,6 +13,7 @@ const REASONS = {
   SCALE_CAP_EXCEEDED: 'scale-cap-exceeded',       // node or candidate count beyond the configured cap
   PROBE_ERROR: 'probe-error',                     // an in-page probe threw (page script conflict); partial results kept
   TIME_VARYING_MEDIA: 'time-varying-media',       // bundled video/canvas — pixels depend on playback instant, masked from diffs
+  BLOCKED_BY_POLICY: 'blocked-by-policy',         // asset fetch refused by the SSRF guard (private/loopback host, non-http scheme)
 };
 
 // A page-level "detected, out of scope / cannot proceed" outcome. Not a crash:

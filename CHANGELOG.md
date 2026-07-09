@@ -1,5 +1,75 @@
 # Changelog
 
+## v0.4.0
+
+Completeness + security release — three new capture dimensions (pseudo-elements,
+keyboard/focus, responsive breakpoints), each with its own verification tier,
+plus hardening of the local server and asset fetcher.
+
+**Pseudo-element capture (::before / ::after)**
+- Pseudo-elements paint real pixels (badges, timeline dots, underline accents,
+  decorative quote marks) but have no DOM node to walk. Capture now reads
+  `getComputedStyle(el, '::before'/'::after')` for every element; a pseudo
+  exists iff its computed `content` is neither `none` nor `normal`. The full
+  tracked property set is captured (plus `content` and explicit width/height —
+  pseudo boxes have no content to derive size from), and pseudo
+  `background-image` URLs are bundled like any other asset.
+- Reconstruction re-emits each captured pseudo as a per-node
+  `[data-mf-id]::before/::after` rule. Pseudo pixels are part of the normal
+  per-node + aggregate diff — no special-casing, they simply have to match.
+
+**Keyboard / focus recovery (new interaction dimension + replay tier)**
+- CSS `:focus`, `:focus-visible`, and `:focus-within` rules are recovered from
+  the page's stylesheets verbatim (same mechanism as hover rules).
+- A keyboard agent focuses every tabbable candidate programmatically (bounded
+  by `focusBudgetMs`, ambient-aware, class restore after each probe) and diffs
+  the tracked styles of every node: JS-driven focus styling is recovered as
+  per-trigger deltas. Style-only deltas compile to CSS `:focus` rules
+  (same-node or descendant); class-toggling deltas are replayed with real
+  `focus`/`blur` listeners in the reconstruction.
+- **Focus-state verification tier**: capture presses real Tab keys (so
+  `:focus-visible` fires exactly as it does for keyboard users) and screenshots
+  the first `focusCheckpoints` tab stops; convergence replays the same Tab
+  sequence on the reconstruction and pixel-diffs each stop. Reported as
+  `focusStates` and gated by `npm run verify`.
+
+**Responsive breakpoints (`--breakpoints`, new replay tier)**
+- `--breakpoints 480,768` re-captures the page at each extra viewport width
+  (media queries + resize handlers settled) and records, per node, exactly the
+  tracked properties whose computed value differs from the base-width capture.
+- Reconstruction emits the overrides as real `@media` rules — `max-width`
+  queries for widths below the base viewport (narrowest last, so it wins) and
+  `min-width` queries above — so the clone reflows like the original instead
+  of being a single-width photograph.
+- **Breakpoint-state verification tier**: capture screenshots the original at
+  every requested width; convergence resizes the reconstruction to the same
+  widths and pixel-diffs against the ground truth. Reported as
+  `breakpointStates` and gated by `npm run verify`.
+
+**Security hardening**
+- Local fixture/dir server: request paths are decoded once, resolved against
+  the served root, and must remain strictly inside it (separator-aware, so
+  `/dir-evil` cannot shadow `/dir`); null bytes rejected; only GET/HEAD
+  answered; targets are stat'd (no directories, no dangling paths).
+- Asset fetcher: SSRF guard — private/loopback/link-local addresses are
+  refused unless the captured page itself lives on that origin; extension
+  sanitization (`/^\.[a-z0-9]{1,5}$/i`) so a hostile URL cannot smuggle path
+  fragments into bundled filenames.
+- `npm audit`: 0 known vulnerabilities in the dependency tree.
+
+**Fixtures / gate**
+- New `fixtures/stress-pseudo`: timeline dots, text badges, underline accents,
+  and a decorative quote mark — all `::before`/`::after` content.
+- New `fixtures/stress-keyboard`: `:focus` + `:focus-visible` CSS rules plus a
+  JS focus listener that highlights the containing card; verified by real Tab
+  replay (3 focus states).
+- New `fixtures/stress-responsive`: a 3-column menu grid that reflows at 768px
+  (2 columns) and 480px (1 column, accent flips from top to left border);
+  verified at both breakpoint widths (run with `--breakpoints 480,768` by the
+  release gate).
+- All 15 fixtures pass `npm run verify` with 0 failed nodes/states, 0 failed
+  scroll/pointer/focus/breakpoint states.
+
 ## v0.3.0
 
 Visual-effects release — sequential scroll-reveal stagger and pointer

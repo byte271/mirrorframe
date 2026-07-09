@@ -636,6 +636,63 @@ async function converge(genome, recon, outDir) {
     }
   }
 
+  // --- focus-state verification (v0.4): replay the capture-time Tab presses
+  //     (real keyboard) on the reconstruction and diff against the
+  //     ground-truth Tab-stop screenshots. The recon preserves DOM order, so
+  //     the same number of Tabs must land on the same element with the same
+  //     :focus-visible styling. ---
+  report.focusStates = [];
+  const fShots = (genome.interaction.focusShots || []);
+  if (fShots.length) {
+    try {
+      await gotoBounded(page, reconUrl);
+      let pressed = 0;
+      for (const s of fShots) {
+        while (pressed < s.tabs) { await page.keyboard.press('Tab'); pressed++; }
+        await page.waitForTimeout(300);
+        const reconShot = path.join(outDir, 'recon-' + s.shot);
+        fs.writeFileSync(reconShot, await settleShot(page, 1500));
+        const d = diffFiles(path.join(outDir, s.shot), reconShot,
+                            path.join(outDir, 'diff-' + s.shot), masks,
+                            s.shotB ? path.join(outDir, s.shotB) : null);
+        report.focusStates.push({
+          tabs: s.tabs, focusedId: s.focusedId,
+          similarity: d.similarity, timeVaryingPixels: d.timeVaryingPixels,
+          status: d.similarity >= STATE_PASS ? 'pass' : 'fail',
+        });
+      }
+    } catch (e) {
+      report.focusStates.push({ similarity: null, status: 'fail',
+                                reason: REASONS.TIME_BUDGET_EXCEEDED });
+    }
+  }
+
+  // --- breakpoint-state verification (v0.4): resize the reconstruction to
+  //     each captured breakpoint width and diff against the ground-truth
+  //     screenshot taken at that width. ---
+  report.breakpointStates = [];
+  for (const r of genome.responsive || []) {
+    if (!r.shot || !fs.existsSync(path.join(outDir, r.shot))) continue;
+    try {
+      await page.setViewportSize({ width: r.width, height: vp.h });
+      await gotoBounded(page, reconUrl);
+      await page.waitForTimeout(600);
+      const reconShot = path.join(outDir, 'recon-' + r.shot);
+      fs.writeFileSync(reconShot, await settleShot(page, 2000));
+      const d = diffFiles(path.join(outDir, r.shot), reconShot,
+                          path.join(outDir, 'diff-' + r.shot), masks,
+                          r.shotB ? path.join(outDir, r.shotB) : null);
+      report.breakpointStates.push({
+        width: r.width, overriddenNodes: Object.keys(r.overrides || {}).length,
+        similarity: d.similarity, timeVaryingPixels: d.timeVaryingPixels,
+        status: d.similarity >= STATE_PASS ? 'pass' : 'fail',
+      });
+    } catch (e) {
+      report.breakpointStates.push({ width: r.width, similarity: null, status: 'fail',
+                                     reason: REASONS.TIME_BUDGET_EXCEEDED });
+    }
+  }
+
   await browser.close();
 
   report.summary = {
@@ -661,6 +718,14 @@ async function converge(genome, recon, outDir) {
     pointerStates: {
       pass: report.pointerStates.filter(s => s.status === 'pass').length,
       fail: report.pointerStates.filter(s => s.status === 'fail').length,
+    },
+    focusStates: {
+      pass: report.focusStates.filter(s => s.status === 'pass').length,
+      fail: report.focusStates.filter(s => s.status === 'fail').length,
+    },
+    breakpointStates: {
+      pass: report.breakpointStates.filter(s => s.status === 'pass').length,
+      fail: report.breakpointStates.filter(s => s.status === 'fail').length,
     },
     assets: {
       bundled: (genome.assets && genome.assets.count) || 0,

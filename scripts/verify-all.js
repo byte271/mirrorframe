@@ -13,6 +13,12 @@ const outRoot = path.join(root, 'mf-out');
 const fixtures = fs.readdirSync(fixturesDir).filter(f =>
   fs.existsSync(path.join(fixturesDir, f, 'index.html')));
 
+// Per-fixture extra CLI args (v0.4): the responsive fixture is exercised with
+// multi-viewport re-capture so the breakpoint tier is part of the release bar.
+const extraArgs = {
+  'stress-responsive': ['--breakpoints', '480,768'],
+};
+
 const rows = [];
 let anyFailed = false;
 
@@ -20,14 +26,18 @@ for (const f of fixtures) {
   console.log(`\n=== ${f} ===`);
   execFileSync(process.execPath,
     [path.join(root, 'scripts', 'mirrorframe.js'), 'run',
-     '--dir', path.join(fixturesDir, f), '--out', path.join(outRoot, f)],
+     '--dir', path.join(fixturesDir, f), '--out', path.join(outRoot, f),
+     ...(extraArgs[f] || [])],
     { stdio: 'inherit' });
   const r = JSON.parse(fs.readFileSync(path.join(outRoot, f, 'convergence.json')));
   const s = JSON.parse(fs.readFileSync(path.join(outRoot, f, 'summary.json')));
   const n = r.summary.nodes;
   const scroll = r.summary.scrollStates || { pass: 0, fail: 0 };
   const pointer = r.summary.pointerStates || { pass: 0, fail: 0 };
-  if (n.failed > 0 || r.summary.states.fail > 0 || scroll.fail > 0 || pointer.fail > 0)
+  const focus = r.summary.focusStates || { pass: 0, fail: 0 };
+  const bp = r.summary.breakpointStates || { pass: 0, fail: 0 };
+  if (n.failed > 0 || r.summary.states.fail > 0 || scroll.fail > 0 || pointer.fail > 0 ||
+      focus.fail > 0 || bp.fail > 0)
     anyFailed = true;
   rows.push({
     fixture: f,
@@ -35,6 +45,8 @@ for (const f of fixtures) {
     states: `${r.summary.states.pass}P/${r.summary.states.fail}F`,
     scroll: `${scroll.pass}P/${scroll.fail}F`,
     pointer: `${pointer.pass}P/${pointer.fail}F`,
+    focus: `${focus.pass}P/${focus.fail}F`,
+    breakpoints: `${bp.pass}P/${bp.fail}F`,
     fold: (s.similarity.fold * 100).toFixed(2) + '%',
     full: (s.similarity.full * 100).toFixed(2) + '%',
   });

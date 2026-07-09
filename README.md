@@ -30,8 +30,9 @@ node scripts/mirrorframe.js run --url https://your-site.example --out ./mf-out/y
 node scripts/mirrorframe.js run --dir ./fixtures/tabs --out ./mf-out/tabs
 
 # optional capture viewport: --width 1280 --height 800   (defaults shown)
+# optional responsive re-capture (new in 0.4): --breakpoints 480,768
 
-npm run verify         # regression gate: full pipeline on all 12 bundled fixtures
+npm run verify         # regression gate: full pipeline on all 15 bundled fixtures
 ```
 
 Open the reconstruction at `<out>/recon-app/index.html` — a self-contained React app
@@ -50,7 +51,7 @@ Open the reconstruction at `<out>/recon-app/index.html` — a self-contained Rea
    the identical viewport, verifies per node and per state, auto-corrects residual
    drift, and replays every recovered interaction and scroll state.
 
-## Feature list (v0.3.0 — everything below is implemented and verified)
+## Feature list (v0.4.0 — everything below is implemented and verified)
 
 ### Capture & assets
 - Full computed-style capture per node (layout, color, type, borders, shadows,
@@ -66,6 +67,13 @@ Open the reconstruction at `<out>/recon-app/index.html` — a self-contained Rea
 - **`<canvas>`** (new in 0.2): the currently painted frame is snapshotted and
   re-emitted as a pixel-true still
 - Same-origin iframes captured; cross-origin content masked with a fixed reason
+- **Pseudo-elements** (new in 0.4): `::before`/`::after` content (badges, timeline
+  dots, underline accents, decorative marks) is captured per originating element
+  and re-emitted as per-node pseudo rules; pseudo background-images are bundled
+- **Responsive breakpoints** (new in 0.4): `--breakpoints 480,768` re-captures the
+  page at extra viewport widths and emits the per-node style differences as real
+  `@media` rules — the clone reflows like the original instead of being a
+  single-width photograph; each width is pixel-verified against ground truth
 
 ### Motion (the "individual frame" tier)
 - CSS `@keyframes` animations and transitions (recovered via WAAPI `getAnimations()`)
@@ -103,6 +111,10 @@ Recovered from the page by synthetic probes — never assumed or hardcoded:
   input-free watch and excluded from learning rather than mislearned
 - A probe that crashes on a page-script conflict records `probe-error` for that
   candidate and the sweep continues (new in 0.2)
+- **Keyboard/focus recovery** (new in 0.4): CSS `:focus`/`:focus-visible`/
+  `:focus-within` rules recovered verbatim; a bounded keyboard agent probes every
+  tabbable element and recovers JS-driven focus styling — style deltas compile to
+  CSS `:focus` rules, class toggles are re-wired as real `focus`/`blur` listeners
 
 ### Verification (honest by construction)
 - **Per-node**: every tracked node gets its own similarity score and one status —
@@ -120,6 +132,11 @@ Recovered from the page by synthetic probes — never assumed or hardcoded:
   (settle time scaled to the largest recovered smoothing tau) and pixel-diffed;
   replay shots are settle-aware, waiting until consecutive frames match so
   staggered reveals and lag-smoothed effects finish before the diff
+- **Focus replay** (new in 0.4): capture screenshots the first Tab stops after
+  real Tab key presses (so `:focus-visible` fires exactly as it does for keyboard
+  users); convergence replays the same Tab sequence and pixel-diffs each stop
+- **Breakpoint replay** (new in 0.4): the reconstruction is resized to every
+  captured breakpoint width and pixel-diffed against the original at that width
 - **Time-varying honesty** (new in 0.2): bundled video/canvas and frame-sampled nodes
   have their *mechanism* replicated, but pixels depend on the playback instant — they
   are masked from diffs with the fixed reason `time-varying-media`, itemized, never
@@ -132,8 +149,12 @@ Recovered from the page by synthetic probes — never assumed or hardcoded:
 
 ## Verified results (clean run, `npm run verify`)
 
-All 12 bundled fixtures pass with **0 failed nodes, 0 failed states, 0 failed
-scroll states, and 0 failed pointer states** — including `stress-stagger`
+All 15 bundled fixtures pass with **0 failed nodes, 0 failed states, 0 failed
+scroll/pointer/focus/breakpoint states** — including `stress-pseudo`
+(::before/::after badges, dots, underlines, new in 0.4), `stress-keyboard`
+(:focus/:focus-visible + JS focus styling, real-Tab replay, new in 0.4),
+`stress-responsive` (grid reflow at 768/480px, verified at both widths, new
+in 0.4), `stress-stagger`
 (CSS-delay + JS-timer sequential reveals, new in 0.3), `stress-pointer`
 (parallax/tilt/smooth-follower pointer choreography, new in 0.3), `stress-frames`
 (rAF inline-style motion + animated canvas), `stress-scale` (230 nodes / 120
@@ -163,7 +184,7 @@ per-node table is `convergence.json`; residual maps are `diff-*.png`.
 | `genome.json` | Design Genome: tokens, motion DNA, interaction DNA, annotated structure |
 | `assets/` | locally bundled images, fonts, videos, posters, media stills |
 | `recon-app/` | generated React app (jsx + css + bundle + html) |
-| `original-*.png` / `state-*.png` / `scroll-*.png` / `pointer-*.png` | ground-truth screenshots |
+| `original-*.png` / `state-*.png` / `scroll-*.png` / `pointer-*.png` / `focus-*.png` / `bp-*.png` | ground-truth screenshots |
 | `recon-*.png` / `diff-*.png` | reconstruction screenshots + pixelmatch residual maps |
 | `convergence.json` | per-node table, correction log, state/scroll replay results, aggregates |
 | `summary.json` | one-screen quantitative summary |
@@ -185,7 +206,7 @@ scripts/lib/converge.js         per-node + aggregate diff, auto-correction, stat
 references/behavior-patterns.md recovered-pattern catalog (reveal/toggle/exclusive/pair)
 references/limitations.md       hard scope limits + expected non-pass statuses
 references/roadmap.md           forward planning, feasible-now vs research-level
-fixtures/                       12 self-authored test pages (4 core + 8 stress)
+fixtures/                       15 self-authored test pages (4 core + 11 stress)
 ```
 
 ## Known limitations (deliberate scope — see references/limitations.md)
@@ -196,10 +217,11 @@ fixtures/                       12 self-authored test pages (4 core + 8 stress)
   springs with overshoot) is reported as unclassified, not approximated; recovered
   smoothing is a single exponential time constant per node
 - No general physics/inertia/spring recovery; frame tracks replay observed motion verbatim
-- Behavior graphing covers class-toggle machines driven by click/scroll/hover — no
-  drags, keyboard machines, or DOM insertion/removal machines
+- Behavior graphing covers class-toggle machines driven by click/scroll/hover/focus —
+  no drags, arrow-key/shortcut machines, or DOM insertion/removal machines
 - One output target: React + plain CSS
-- Responsive breakpoints are not re-captured at multiple viewports (single-viewport clone)
+- Responsive re-capture happens at the widths you pass via `--breakpoints`; the exact
+  authored media-query thresholds between them are not inferred
 - "Any website" is explicitly not claimed — read the per-node report before trusting output
 
 ## Licensing

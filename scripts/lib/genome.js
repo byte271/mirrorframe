@@ -145,6 +145,29 @@ function buildGenome(bundle) {
   const hoverJs = bundle.hoverProbes || [];
   const pointerFields = bundle.pointerFields || [];
   for (const u of bundle.unclassifiedPointer || []) unclassified.push(u);
+  // Keyboard/focus DNA (v0.4): CSS :focus(-visible/-within) rules recovered
+  // verbatim + JS-driven focus deltas from the keyboard agent.
+  const focus = bundle.focusRules || [];
+  const focusJs = bundle.focusProbes || [];
+
+  // --- Responsive DNA (v0.4): per-breakpoint style overrides ---
+  // Each re-capture width contributes, per node, exactly the tracked props
+  // whose computed value differs from the base-width capture. Reconstruction
+  // emits these as @media rules; the observed breakpoint states are then
+  // pixel-verified against the ground-truth shots taken at each width.
+  const responsive = (bundle.responsive || []).map(r => {
+    const overrides = {};
+    for (const n of flat) {
+      const s = r.styles && r.styles[n.id];
+      if (!s || !n.style || n.placeholder) continue;
+      const d = {};
+      for (const p of Object.keys(s.style)) {
+        if (n.style[p] !== undefined && s.style[p] !== n.style[p]) d[p] = s.style[p];
+      }
+      if (Object.keys(d).length) overrides[n.id] = d;
+    }
+    return { width: r.width, shot: r.shot, shotB: r.shotB, overrides };
+  });
 
   // --- Structure with token references ---
   function annotate(node) {
@@ -163,7 +186,7 @@ function buildGenome(bundle) {
       media: node.media, poster: node.poster, frame: node.frame,
       mediaAttrs: node.mediaAttrs,
       placeholder: node.placeholder || undefined, reason: node.reason,
-      style: node.style, tokenRefs,
+      style: node.style, pseudo: node.pseudo, tokenRefs,
       children: node.children.map(annotate),
     };
   }
@@ -182,7 +205,9 @@ function buildGenome(bundle) {
     motion,
     interaction: { hover, hoverJs, pointerFields,
                    pointerShots: bundle.pointerShots || [],
+                   focus, focusJs, focusShots: bundle.focusShots || [],
                    behaviors, unclassified },
+    responsive,
     assets: bundle.assets || { map: {}, misses: [] },
     fontFaces: bundle.fontFaces || [],
     // Scope report: everything capture could not handle, with fixed reasons.

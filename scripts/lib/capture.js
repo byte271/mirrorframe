@@ -40,6 +40,10 @@ const DEFAULTS = {
   settleThreshold: 0.005,// max changed-pixel ratio between frames to call it settled
   frameSampleMs: 2400,   // rAF frame-sampling window for time-driven motion
   maxFrameTracks: 120,   // per-page frame-track cap (memory bound)
+  focusBudgetMs: 20000,  // focus-probe wall-clock budget (v0.4)
+  focusCheckpoints: 3,   // ground-truth Tab-stop screenshots for focus-state verification
+  breakpoints: [],       // extra viewport widths to re-capture (v0.4, --breakpoints)
+  breakpointSettleMs: 800, // settle after a viewport resize before re-reading styles
 };
 
 // Pages with intro/loader animations (theme flips, translated wrappers) must
@@ -325,6 +329,31 @@ function inPageExtract({ PROPS, maxNodes, reasons }) {
     return style;
   }
 
+  // ::before / ::after (v0.4): pseudo-elements paint real pixels (badges,
+  // underline accents, decorative layers) but have no DOM node to walk.
+  // Read their computed styles per originating element; a pseudo exists iff
+  // its computed `content` is neither 'none' nor 'normal'. Captured styles
+  // include `content` plus the full tracked PROPS set; width/height are kept
+  // because pseudo boxes have no content to derive size from.
+  function readPseudo(el) {
+    const out = {};
+    for (const pe of ['::before', '::after']) {
+      let cs;
+      try { cs = getComputedStyle(el, pe); } catch (e) { continue; }
+      const content = cs.content;
+      if (!content || content === 'none' || content === 'normal') continue;
+      const style = { content };
+      for (const p of PROPS) {
+        let v = cs[p];
+        if (v == null || v === '') continue;
+        if (/color/i.test(p) && v.startsWith('rgb')) v = cssColorToHex(v);
+        style[p] = v;
+      }
+      out[pe === '::before' ? 'before' : 'after'] = style;
+    }
+    return Object.keys(out).length ? out : undefined;
+  }
+
   function captureImg(el) {
     if (uid >= maxNodes) return recordSkip(el, reasons.SCALE_CAP_EXCEEDED);
     const rect = el.getBoundingClientRect();
@@ -476,6 +505,7 @@ function inPageExtract({ PROPS, maxNodes, reasons }) {
       classes: [...el.classList],
       rect: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
       style: readStyle(el),
+      pseudo: readPseudo(el),
       text: ownText || undefined,
       href: el.getAttribute('href') || undefined,
       children: [],
@@ -576,6 +606,120 @@ function inPageHoverRules() {
     }
   }
   return { hoverRules, crossOriginSheets };
+}
+
+// ---------------------------------------------------------------------------
+// In-page: :focus / :focus-visible / :focus-within rules recovered verbatim
+// from same-origin stylesheets (v0.4) — same discipline as hover rules.
+// ---------------------------------------------------------------------------
+function inPageFocusRules() {
+  const focusRules = [];
+  for (const sheet of document.styleSheets) {
+    let rules;
+    try { rules = sheet.cssRules; } catch (e) { continue; } // counted via hover pass
+    if (!rules) continue;
+    for (const rule of rules) {
+      try {
+        if (rule.selectorText && /:focus(-visible|-within)?\b/.test(rule.selectorText)) {
+          focusRules.push({
+            selector: rule.selectorText,
+            declarations: rule.style.cssText,
+          });
+        }
+      } catch (e) { /* exotic rule types — skip the rule */ }
+    }
+  }
+  return focusRules;
+}
+
+// ---------------------------------------------------------------------------
+// In-page: focus probe (keyboard agent, v0.4). CSS :focus rules are recovered
+// from stylesheets separately; this probe recovers JS-driven focus behavior
+// (focus/blur listeners that toggle classes or write inline styles) by
+// programmatically focusing each keyboard-reachable candidate and diffing
+// class + tracked style state. Bounded by candidate cap + budget; the page
+// state is restored after every candidate.
+// ---------------------------------------------------------------------------
+async function inPageFocusProbe({ PROPS, budgetMs, maxCandidates, ambientIds }) {
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  const deadline = Date.now() + budgetMs;
+  const ambient = new Set(ambientIds || []);
+  const all = [...document.querySelectorAll('[data-mf-id]')];
+  const idOf = (el) => el.getAttribute('data-mf-id');
+
+  const snapshot = () => {
+    const m = {};
+    for (const el of all) {
+      const cs = getComputedStyle(el);
+      const s = { __class: el.className };
+      for (const p of PROPS) { const v = cs[p]; if (v != null && v !== '') s[p] = v; }
+      m[idOf(el)] = s;
+    }
+    return m;
+  };
+  const diff = (a, b) => {
+    const out = {};
+    for (const id of Object.keys(b)) {
+      if (ambient.has(id)) continue;
+      const d = {};
+      for (const p of Object.keys(b[id])) {
+        if (a[id] && a[id][p] !== b[id][p]) d[p] = { off: a[id][p], on: b[id][p] };
+      }
+      if (Object.keys(d).length) out[id] = d;
+    }
+    return out;
+  };
+
+  const candidates = all.filter(el =>
+    el.matches('a[href],button,input,select,textarea,[tabindex]') &&
+    !el.matches('[tabindex="-1"]')).slice(0, maxCandidates);
+  const focuses = [];
+  for (const el of candidates) {
+    if (Date.now() > deadline) break;
+    const base = snapshot();
+    try { el.focus({ preventScroll: true }); } catch (e) { continue; }
+    await sleep(200);
+    const d = diff(base, snapshot());
+    try { el.blur(); } catch (e) {}
+    await sleep(150);
+    for (const el2 of all) {
+      const want = base[idOf(el2)] && base[idOf(el2)].__class;
+      if (want != null && el2.className !== want && !ambient.has(idOf(el2))) el2.className = want;
+    }
+    if (Object.keys(d).length) focuses.push({ trigger: idOf(el), deltas: d });
+  }
+  return focuses;
+}
+
+// ---------------------------------------------------------------------------
+// In-page: full tracked-style + rect snapshot of every node at the CURRENT
+// viewport (v0.4 responsive re-capture). Same normalization as readStyle so
+// values diff 1:1 against the base-width capture.
+// ---------------------------------------------------------------------------
+function inPageBreakpointSnapshot(PROPS_) {
+  const cssColorToHex = (c) => {
+    const m = c.match(/rgba?\(([^)]+)\)/);
+    if (!m) return c;
+    const [r, g, b, a = 1] = m[1].split(',').map(s => parseFloat(s.trim()));
+    const hex = (n) => Math.round(n).toString(16).padStart(2, '0');
+    if (a < 1) return `rgba(${r}, ${g}, ${b}, ${a})`;
+    return `#${hex(r)}${hex(g)}${hex(b)}`;
+  };
+  const out = {};
+  document.querySelectorAll('[data-mf-id]').forEach(el => {
+    const cs = getComputedStyle(el);
+    const style = {};
+    for (const p of PROPS_) {
+      let v = cs[p];
+      if (v == null || v === '') continue;
+      if (/color/i.test(p) && v.startsWith('rgb')) v = cssColorToHex(v);
+      style[p] = v;
+    }
+    const r = el.getBoundingClientRect();
+    out[el.getAttribute('data-mf-id')] =
+      { style, rect: { x: r.x + window.scrollX, y: r.y + window.scrollY, w: r.width, h: r.height } };
+  });
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -1017,6 +1161,7 @@ async function capture(url, outDir, opts = {}) {
     if (!raw || raw.error) throw new MfSkip(REASONS.UNPARSEABLE_MARKUP, raw && raw.error);
 
     const { hoverRules, crossOriginSheets } = await page.evaluate(inPageHoverRules);
+    const focusRules = await page.evaluate(inPageFocusRules);
 
     // --- Web fonts: @font-face rules (same-origin CSSOM + cross-origin CSS
     // fetched out-of-page), binaries bundled, src rewritten to local files. ---
@@ -1053,6 +1198,12 @@ async function capture(url, outDir, opts = {}) {
       if (n.src && n.media !== 'video') imgUrls.add(n.src);
       if (n.style && n.style.backgroundImage && n.style.backgroundImage !== 'none')
         cssUrls(n.style.backgroundImage).forEach(u => imgUrls.add(u));
+      // Pseudo-element backdrops paint real pixels too (v0.4).
+      for (const pe of ['before', 'after']) {
+        const ps = n.pseudo && n.pseudo[pe];
+        if (ps && ps.backgroundImage && ps.backgroundImage !== 'none')
+          cssUrls(ps.backgroundImage).forEach(u => imgUrls.add(u));
+      }
     }
     for (const u of imgUrls) if (!store.has(u)) await fetchInto(store, page, u);
 
@@ -1318,6 +1469,17 @@ async function capture(url, outDir, opts = {}) {
       ]) || [];
     } catch (e) { hoverProbes = []; }
 
+    // Keyboard agent (v0.4): JS-driven focus behavior recovery. Programmatic
+    // focus/blur per candidate, class + style diffs, page state restored.
+    let focusProbes = [];
+    try {
+      focusProbes = await Promise.race([
+        page.evaluate(inPageFocusProbe,
+          { PROPS, budgetMs: cfg.focusBudgetMs, maxCandidates: cfg.maxCandidates, ambientIds }),
+        new Promise(r => setTimeout(() => r([]), cfg.focusBudgetMs + 15000)),
+      ]) || [];
+    } catch (e) { focusProbes = []; }
+
     // Pointer choreography: sample the page's transforms over a 3x3 grid of
     // mouse positions (per-position settle lets lag-smoothed followers reach
     // their target), fit each node's matrix components as planes over the
@@ -1406,6 +1568,42 @@ async function capture(url, outDir, opts = {}) {
     await page.waitForTimeout(cursor.fields.length ? Math.min(3000,
       Math.max(400, 5 * Math.max(0, ...cursor.fields.map(f => f.tauMs || 0)))) : 300);
 
+    // Ground-truth focus-state shots (v0.4): REAL Tab key presses walk the
+    // page's own tab order — the same presses trigger :focus-visible exactly
+    // as a keyboard user would. The convergence step replays the same number
+    // of Tabs on the reconstruction and diffs against these. Only taken when
+    // there is recovered focus styling/behavior to verify.
+    const focusShots = [];
+    if (focusRules.length || focusProbes.length) {
+      try {
+        await page.evaluate(() => {
+          if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+          window.scrollTo(0, 0);
+        });
+        await page.waitForTimeout(200);
+        for (let k = 1; k <= (cfg.focusCheckpoints || 3); k++) {
+          await page.keyboard.press('Tab');
+          await page.waitForTimeout(300);
+          const focusedId = await page.evaluate(() =>
+            document.activeElement && document.activeElement.getAttribute &&
+            document.activeElement.getAttribute('data-mf-id'));
+          if (!focusedId) break;
+          const shot = `original-focus-${k}.png`;
+          await page.screenshot({ path: path.join(outDir, shot) });
+          // Second exposure a beat later: pixels that differ are time-driven,
+          // not focus-driven — masked by the verifier with the fixed reason.
+          const shotB = `original-focus-${k}-b.png`;
+          await page.waitForTimeout(350);
+          await page.screenshot({ path: path.join(outDir, shotB) });
+          focusShots.push({ tabs: k, focusedId, shot, shotB });
+        }
+        await page.evaluate(() => {
+          if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        });
+        await page.waitForTimeout(200);
+      } catch (e) { /* focus shots are best-effort; verification simply has fewer states */ }
+    }
+
     // Ground-truth screenshot per recovered interaction state (real clicks, not
     // class injection) — the convergence step replays the same click sequence on
     // the reconstruction and diffs against these.
@@ -1438,6 +1636,28 @@ async function capture(url, outDir, opts = {}) {
       }
     }
 
+    // Responsive re-capture (v0.4): resize the SAME page to each requested
+    // breakpoint width, let media queries + resize handlers settle, and
+    // re-read the full tracked style set + rects of every node, plus a
+    // ground-truth screenshot per width. Runs last — the resize would
+    // invalidate every viewport-coordinate probe above.
+    const responsive = [];
+    for (const bw of (cfg.breakpoints || []).filter(w => w > 0 && w !== width)) {
+      try {
+        await page.setViewportSize({ width: bw, height });
+        await page.waitForTimeout(cfg.breakpointSettleMs);
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.waitForTimeout(250);
+        const styles = await page.evaluate(inPageBreakpointSnapshot, PROPS);
+        const shot = `original-bp-${bw}.png`;
+        await page.screenshot({ path: path.join(outDir, shot) });
+        const shotB = `original-bp-${bw}-b.png`;
+        await page.waitForTimeout(350);
+        await page.screenshot({ path: path.join(outDir, shotB) });
+        responsive.push({ width: bw, styles, shot, shotB });
+      } catch (e) { break; } // best-effort per width; verification has fewer states
+    }
+
     await browser.close();
 
     const bundle = { url, capturedAt: new Date().toISOString(),
@@ -1452,6 +1672,8 @@ async function capture(url, outDir, opts = {}) {
                      frameTracks,
                      scrollTracks, maxScroll, scrollShots,
                      hoverProbes,
+                     focusRules, focusProbes, focusShots,
+                     responsive,
                      pointerFields: cursor.fields,
                      pointerShots,
                      unclassifiedPointer: cursor.unclassified,

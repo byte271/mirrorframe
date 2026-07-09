@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quillbase shortcuts — Mirrorframe keyboard/focus fixture</title>
+<style>
+  :root {
+    --ink: #22252c;
+    --muted: #6b7280;
+    --bg: #f3f4f7;
+    --card: #ffffff;
+    --accent: #0e7490;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Trebuchet MS', Tahoma, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 56px 24px;
+  }
+  .wrap { max-width: 620px; margin: 0 auto; }
+  h1 { font-size: 30px; margin-bottom: 8px; }
+  .lede { color: var(--muted); font-size: 15px; margin-bottom: 36px; }
+
+  .toolbar { display: flex; gap: 10px; margin-bottom: 24px; }
+  .action {
+    padding: 12px 20px;
+    border: 2px solid #d7dae1;
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+  }
+  /* CSS :focus / :focus-visible rules — recovered verbatim */
+  .action:focus {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .action:focus-visible {
+    box-shadow: 0 0 0 4px rgba(14, 116, 144, 0.25);
+  }
+
+  .field {
+    display: block;
+    width: 100%;
+    padding: 13px 16px;
+    border: 2px solid #d7dae1;
+    border-radius: 8px;
+    background: var(--card);
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 24px;
+    outline: none;
+    text-decoration: none;
+  }
+  .field:focus {
+    border-color: var(--accent);
+    background-color: #f0fbfe;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 24px;
+    border-left: 4px solid #d7dae1;
+  }
+  /* JS-driven focus: link focus inside the card highlights the card */
+  .card.kbd-active { border-left-color: var(--accent); }
+  .card h2 { font-size: 17px; margin-bottom: 8px; }
+  .card p { color: var(--muted); font-size: 14px; line-height: 1.7; margin-bottom: 12px; }
+  .card a {
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 700;
+    outline: none;
+  }
+  .card a:focus { text-decoration: underline; background-color: #e0f5fa; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Quillbase shortcuts</h1>
+    <p class="lede">Keyboard settings for the fictional Quillbase notes app. Built as a Mirrorframe keyboard/focus fixture: Tab through the controls to see :focus, :focus-visible, and JS-driven focus styling.</p>
+
+    <div class="toolbar">
+      <button class="action">Rebind keys</button>
+      <button class="action">Reset defaults</button>
+      <button class="action">Export map</button>
+    </div>
+
+    <a class="field" href="#search">Search shortcuts</a>
+
+    <div class="card" id="doc-card">
+      <h2>Cheat sheet</h2>
+      <p>Print the full shortcut reference, including chord bindings and the vim-style navigation layer.</p>
+      <a href="#cheatsheet">Open the cheat sheet</a>
+    </div>
+  </div>
+
+  <script>
+    var card = document.getElementById('doc-card');
+    var link = card.querySelector('a');
+    link.addEventListener('focus', function () { card.classList.add('kbd-active'); });
+    link.addEventListener('blur', function () { card.classList.remove('kbd-active'); });
+  </script>
+</body>
+</html>

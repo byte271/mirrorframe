@@ -24,11 +24,20 @@ verified; see `roadmap.md` for what comes next and what is research-level.
   fired during capture fall back to the recovered median stagger step. Very
   long staggers (>2s per element) are clamped.
 - **Behavior graphing covers class-toggle state machines driven by click, scroll,
-  and hover** — no drags, keyboard interactions, inline-style-mutation machines
-  (beyond frame-sampled visual props), or DOM insertion/removal state machines.
+  hover, and focus** — no drags, arrow-key/shortcut machines, inline-style-mutation
+  machines (beyond frame-sampled visual props), or DOM insertion/removal state
+  machines. Focus recovery (v0.4) covers :focus/:focus-visible/:focus-within CSS
+  and JS focus/blur styling; typing, `input` events, and IME behavior are out.
 - **One output target: React + plain CSS.** No Vue/Svelte/etc. yet.
-- **Single-viewport clone.** Responsive breakpoints are not re-captured at multiple
-  widths. Cross-origin stylesheets whose rules cannot be read stay out of scope.
+- **Responsive recovery is sample-based (v0.4).** `--breakpoints` re-captures at
+  the widths you pass and emits @media overrides at exactly those thresholds; the
+  authored breakpoint values between samples are not inferred, and viewport units/
+  container queries between samples reflow only as the base CSS allows.
+  Cross-origin stylesheets whose rules cannot be read stay out of scope.
+- **Pseudo-elements are style snapshots (v0.4).** ::before/::after are re-emitted
+  with their captured computed styles (including counters/`attr()` already
+  resolved to their capture-time text); pseudo-elements with their own hover/
+  animation dynamics replay only what the originating element's rules drive.
 - **Auto-correction patches computed-style drift only.** Layout drift caused by
   untracked properties is reported as `failed`, not silently absorbed.
 - **Proven on the included fixtures** (self-authored, no external assets) and

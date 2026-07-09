@@ -339,6 +339,66 @@ function generateCss(genome) {
       return [`${sel} {\n${decls.join('\n')}\n}`];
     })).join('\n');
 
+  // Pseudo-element rules (v0.4): every captured ::before/::after is re-emitted
+  // as a per-node rule. Explicit width/height are kept — pseudo boxes have no
+  // content to derive size from.
+  const pseudoRules = [];
+  (function findPseudo(node) {
+    for (const pe of ['before', 'after']) {
+      const ps = node.pseudo && node.pseudo[pe];
+      if (!ps) continue;
+      const decls = [`  content: ${ps.content};`];
+      for (const p of LAYOUT_PROPS) {
+        if (ps[p] == null || ps[p] === '') continue;
+        if (p === 'animation' && (ps[p] === 'none' || ps[p].startsWith('none'))) continue;
+        decls.push(`  ${camelToKebab(p)}: ${cssValue(p, ps[p])};`);
+      }
+      for (const p of ['width', 'height']) {
+        if (ps[p] && ps[p] !== 'auto') decls.push(`  ${p}: ${ps[p]};`);
+      }
+      pseudoRules.push(`[data-mf-id="${node.id}"]::${pe} {\n${decls.join('\n')}\n}`);
+    }
+    for (const c of node.children) findPseudo(c);
+  })(genome.structure);
+  const pseudoCss = pseudoRules.join('\n\n');
+
+  // Focus rules (v0.4) recovered verbatim from the original stylesheet, plus
+  // JS-driven focus deltas with style-only changes compiled to :focus rules.
+  const focusRules = (genome.interaction.focus || [])
+    .map(f => `${f.selector} { ${f.declarations} }`).join('\n');
+  const focusJsCss = (genome.interaction.focusJs || []).flatMap(fp =>
+    Object.entries(fp.deltas).flatMap(([id, d]) => {
+      const decls = Object.entries(d)
+        .filter(([p]) => LAYOUT_PROPS.includes(p))
+        .map(([p, v]) => `  ${camelToKebab(p)}: ${cssValue(p, v.on)};`);
+      if (!decls.length) return [];
+      const sel = id === fp.trigger
+        ? `[data-mf-id="${id}"]:focus`
+        : `[data-mf-id="${fp.trigger}"]:focus [data-mf-id="${id}"]`;
+      return [`${sel} {\n${decls.join('\n')}\n}`];
+    })).join('\n');
+
+  // Responsive rules (v0.4): per-breakpoint per-node overrides recovered by
+  // re-capturing at each requested width. Widths below the base viewport emit
+  // max-width queries (narrower last, so the narrowest wins), widths above
+  // emit min-width queries (wider last). Triple-attribute selectors match the
+  // specificity of the per-node divergence overrides they must beat.
+  const baseWidth = (genome.meta.viewport && genome.meta.viewport.w) || 0;
+  const bps = (genome.responsive || []).slice().sort((a, b) =>
+    (a.width >= baseWidth ? a.width : 1e9 - a.width) - (b.width >= baseWidth ? b.width : 1e9 - b.width));
+  const responsiveCss = bps.map(r => {
+    const rules = Object.entries(r.overrides || {}).map(([id, d]) => {
+      const decls = Object.entries(d)
+        .filter(([p]) => LAYOUT_PROPS.includes(p))
+        .map(([p, v]) => `    ${camelToKebab(p)}: ${cssValue(p, v)};`);
+      if (!decls.length) return null;
+      return `  ${`[data-mf-id="${id}"]`.repeat(3)} {\n${decls.join('\n')}\n  }`;
+    }).filter(Boolean).join('\n');
+    if (!rules) return '';
+    const cond = r.width < baseWidth ? `(max-width: ${r.width}px)` : `(min-width: ${r.width}px)`;
+    return `@media ${cond} {\n${rules}\n}`;
+  }).filter(Boolean).join('\n\n');
+
   const keyframes = buildKeyframes(genome);
   const fontFaces = fontFaceCss(genome);
 
@@ -349,6 +409,10 @@ function generateCss(genome) {
          `/* recovered interaction states */\n${behaviorRules}\n\n` +
          `/* recovered hover states */\n${hoverRules}\n\n` +
          `/* recovered JS-driven hover (compiled to CSS) */\n${hoverJsCss}\n\n` +
+         `/* recovered pseudo-elements */\n${pseudoCss}\n\n` +
+         `/* recovered focus states */\n${focusRules}\n\n` +
+         `/* recovered JS-driven focus (compiled to CSS) */\n${focusJsCss}\n\n` +
+         `/* recovered responsive breakpoints */\n${responsiveCss}\n\n` +
          `/* recovered keyframes */\n${keyframes}\n`;
 }
 
@@ -571,6 +635,32 @@ function generateApp(genome) {
     });
   }, []);` : '';
 
+  // JS-driven focus that toggles classes: replayed with real focus/blur
+  // listeners (style-only focus deltas were compiled to :focus rules instead).
+  const focusClassProbes = (genome.interaction.focusJs || []).map(fp => ({
+    trigger: fp.trigger,
+    classes: Object.entries(fp.deltas)
+      .filter(([, d]) => d.__class)
+      .map(([id, d]) => ({ id, off: d.__class.off, on: d.__class.on })),
+  })).filter(fp => fp.classes.length);
+  const focusEffect = focusClassProbes.length ? `
+  React.useEffect(() => {
+    const $ = (id) => document.querySelector('[data-mf-id="' + id + '"]');
+    const offs = [];
+    for (const fp of FOCUS_CLASS) {
+      const el = $(fp.trigger);
+      if (!el) continue;
+      const on = () => fp.classes.forEach(c => { const t = $(c.id); if (t) t.className = c.on; });
+      const off = () => fp.classes.forEach(c => { const t = $(c.id); if (t) t.className = c.off; });
+      el.addEventListener('focus', on);
+      el.addEventListener('blur', off);
+      offs.push([el, on, off]);
+    }
+    return () => offs.forEach(([el, on, off]) => {
+      el.removeEventListener('focus', on); el.removeEventListener('blur', off);
+    });
+  }, []);` : '';
+
   // Chronograph frame tracks: time-driven motion recorded frame-by-frame at
   // capture, replayed verbatim as an infinitely-looping WAAPI animation with
   // the sampled timestamps as keyframe offsets.
@@ -644,13 +734,14 @@ const BEHAVIORS = ${JSON.stringify(behaviors, null, 2)};
 const TRACKS = ${JSON.stringify(tracks)};
 const MAX_SCROLL = ${JSON.stringify(genome.motion.maxScroll || 0)};
 const HOVER_CLASS = ${JSON.stringify(hoverClassProbes)};
+const FOCUS_CLASS = ${JSON.stringify(focusClassProbes)};
 const POINTER_FIELDS = ${JSON.stringify(fields)};
 const REVEAL_STAGGER = ${JSON.stringify(reveal.detected
     ? { ids: reveal.staggerMs || {}, step: reveal.staggerStep || 0 }
     : { ids: {}, step: 0 })};
 const FRAME_TRACKS = ${JSON.stringify(frameTracks)};
 
-function App() {${revealEffect}${behaviorEffect}${scrollEffect}${hoverEffect}${pointerEffect}${frameEffect}
+function App() {${revealEffect}${behaviorEffect}${scrollEffect}${hoverEffect}${focusEffect}${pointerEffect}${frameEffect}
   return (
 ${tree}
   );

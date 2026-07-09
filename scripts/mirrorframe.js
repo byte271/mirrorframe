@@ -25,16 +25,29 @@ function parseArgs(argv) {
 }
 
 // Serve a local directory so file:// asset quirks don't bite; returns {url, close}.
+// Hardened (v0.4): the served root is resolved once; every request path is
+// decoded, resolved against it, and must stay strictly inside the root
+// (separator-aware, so /dir-evil cannot escape /dir). Only GET/HEAD are
+// answered, and files are stat'd (no directories, no dangling paths).
 function serve(dir) {
+  const root = path.resolve(dir);
   const types = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript',
                   '.png':'image/png', '.json':'application/json' };
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
-      let p = decodeURIComponent(req.url.split('?')[0]);
+      if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); res.end(); return; }
+      let p;
+      try { p = decodeURIComponent(req.url.split('?')[0]); }
+      catch (e) { res.writeHead(400); res.end(); return; }
       if (p === '/') p = '/index.html';
-      const fp = path.join(dir, p);
-      if (!fp.startsWith(dir) || !fs.existsSync(fp)) { res.writeHead(404); res.end(); return; }
+      if (p.includes('\0')) { res.writeHead(400); res.end(); return; }
+      const fp = path.resolve(root, '.' + path.posix.normalize('/' + p));
+      if (fp !== root && !fp.startsWith(root + path.sep)) { res.writeHead(403); res.end(); return; }
+      let st;
+      try { st = fs.statSync(fp); } catch (e) { res.writeHead(404); res.end(); return; }
+      if (!st.isFile()) { res.writeHead(404); res.end(); return; }
       res.writeHead(200, { 'Content-Type': types[path.extname(fp)] || 'application/octet-stream' });
+      if (req.method === 'HEAD') { res.end(); return; }
       fs.createReadStream(fp).pipe(res);
     });
     server.listen(0, '127.0.0.1', () => {
@@ -80,6 +93,10 @@ async function main() {
   if (args['nav-timeout']) captureOpts.navTimeoutMs = parseInt(args['nav-timeout']);
   if (args['probe-budget']) captureOpts.probeBudgetMs = parseInt(args['probe-budget']);
   if (args['max-nodes']) captureOpts.maxNodes = parseInt(args['max-nodes']);
+  // v0.4: --breakpoints 480,768,1536 — extra viewport widths to re-capture
+  // (each becomes @media overrides + a verified breakpoint state).
+  if (args.breakpoints) captureOpts.breakpoints = args.breakpoints.split(',')
+    .map(s => parseInt(s.trim())).filter(n => !isNaN(n) && n > 0);
   const bundle = await capture(url, out, captureOpts);
   if (bundle.scope.navFallback)
     console.log('      note: networkidle never settled; captured after domcontentloaded fallback.');
@@ -135,6 +152,16 @@ async function main() {
     for (const s of report.pointerStates)
       console.log(`        - pointer (${s.mx},${s.my}): ${s.status} (sim ${pct(s.similarity)})`);
   }
+  if (report.focusStates && report.focusStates.length) {
+    console.log(`      focus:    ${report.summary.focusStates.pass} pass, ${report.summary.focusStates.fail} fail`);
+    for (const s of report.focusStates)
+      console.log(`        - ${s.tabs}×Tab (focus ${s.focusedId}): ${s.status} (sim ${pct(s.similarity)})`);
+  }
+  if (report.breakpointStates && report.breakpointStates.length) {
+    console.log(`      breakpoints: ${report.summary.breakpointStates.pass} pass, ${report.summary.breakpointStates.fail} fail`);
+    for (const s of report.breakpointStates)
+      console.log(`        - width ${s.width}px (${s.overriddenNodes || 0} overridden nodes): ${s.status} (sim ${pct(s.similarity)})`);
+  }
   const as = report.summary.assets;
   if (as.bundled || as.misses || as.fontFaces)
     console.log(`      assets:   ${as.bundled} bundled, ${as.fontFaces} font faces, ${as.misses} misses`);
@@ -163,7 +190,9 @@ async function main() {
     url, viewport: { width, height },
     pageStatus: (report.summary.nodes.failed === 0 && report.summary.states.fail === 0 &&
                  report.summary.scrollStates.fail === 0 &&
-                 report.summary.pointerStates.fail === 0)
+                 report.summary.pointerStates.fail === 0 &&
+                 report.summary.focusStates.fail === 0 &&
+                 report.summary.breakpointStates.fail === 0)
       ? 'success' : 'partial',
     durationMs: bundle.timings.captureMs,
     nodes: bundle.flat.length,
@@ -178,10 +207,20 @@ async function main() {
     states: report.summary.states,
     scrollStates: report.summary.scrollStates,
     pointerStates: report.summary.pointerStates,
+    focusStates: report.summary.focusStates,
+    breakpointStates: report.summary.breakpointStates,
     scrollTracks: (genome.motion.scrollTracks || []).length,
     frameTracks: (genome.motion.frameTracks || []).length,
     hoverJs: (genome.interaction.hoverJs || []).length,
     pointerFields: (genome.interaction.pointerFields || []).length,
+    focusRules: (genome.interaction.focus || []).length,
+    focusJs: (genome.interaction.focusJs || []).length,
+    pseudoElements: (function count(n) {
+      let c = (n.pseudo ? Object.keys(n.pseudo).length : 0);
+      for (const k of n.children || []) c += count(k);
+      return c;
+    })(genome.structure),
+    breakpoints: (genome.responsive || []).map(r => r.width),
     revealStagger: genome.motion.reveal.detected
       ? Object.keys(genome.motion.reveal.staggerMs || {}).length : 0,
     assets: report.summary.assets,

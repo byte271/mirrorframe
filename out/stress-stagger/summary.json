@@ -1,0 +1,60 @@
+{
+  "url": "http://127.0.0.1:35725/index.html",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "pageStatus": "success",
+  "durationMs": 18440,
+  "nodes": 41,
+  "tokens": {
+    "color": 7,
+    "text": 7
+  },
+  "animations": 0,
+  "transitions": 3,
+  "hover": 0,
+  "reveal": true,
+  "behaviors": [],
+  "perNode": {
+    "pass": 41,
+    "styleVerified": 0,
+    "corrected": 0,
+    "failed": 0,
+    "animatedUnstable": 0,
+    "hiddenAtCapture": 0,
+    "timeVaryingReplicated": 0,
+    "skipped": 0
+  },
+  "states": {
+    "pass": 0,
+    "fail": 0
+  },
+  "scrollStates": {
+    "pass": 3,
+    "fail": 0
+  },
+  "pointerStates": {
+    "pass": 0,
+    "fail": 0
+  },
+  "scrollTracks": 0,
+  "frameTracks": 0,
+  "hoverJs": 0,
+  "pointerFields": 0,
+  "revealStagger": 12,
+  "assets": {
+    "bundled": 0,
+    "misses": 0,
+    "fontFaces": 0
+  },
+  "similarity": {
+    "fold": 1,
+    "full": 1
+  },
+  "scope": {
+    "skips": {},
+    "maskedRegions": 0,
+    "navFallback": false
+  }
+}

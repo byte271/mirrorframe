@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ledgerloom changelog — Mirrorframe pseudo-element fixture</title>
+<style>
+  :root {
+    --ink: #1d2129;
+    --muted: #67707e;
+    --bg: #f6f7fa;
+    --card: #ffffff;
+    --accent: #d3452e;
+    --pill: #1b7f5c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 56px 24px;
+  }
+  .wrap { max-width: 660px; margin: 0 auto; }
+  h1 { font-size: 32px; margin-bottom: 6px; }
+  .lede { color: var(--muted); font-size: 15px; margin-bottom: 40px; }
+
+  /* ::after underline accent on the section heading */
+  .section-title {
+    font-size: 20px;
+    margin-bottom: 22px;
+    position: relative;
+    display: inline-block;
+    padding-bottom: 10px;
+  }
+  .section-title::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 56px;
+    height: 4px;
+    background-color: var(--accent);
+    border-radius: 2px;
+  }
+
+  .entry {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 22px 24px 22px 52px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  /* ::before timeline dot on every entry */
+  .entry::before {
+    content: "";
+    position: absolute;
+    left: 22px;
+    top: 27px;
+    width: 12px;
+    height: 12px;
+    border-radius: 6px;
+    background-color: var(--accent);
+  }
+  .entry h2 { font-size: 17px; margin-bottom: 8px; }
+  .entry p { color: var(--muted); font-size: 14px; line-height: 1.7; }
+
+  /* ::before text badge (generated content string) */
+  .tag { display: inline-block; margin-top: 12px; font-size: 12px; color: var(--pill); font-weight: 700; letter-spacing: 1px; }
+  .tag::before {
+    content: "NEW";
+    display: inline-block;
+    background-color: var(--pill);
+    color: #ffffff;
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 9px;
+    margin-right: 8px;
+    letter-spacing: 1px;
+  }
+
+  /* ::after decorative quote mark */
+  .note {
+    background: #eef1f6;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-top: 28px;
+    font-style: italic;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+    position: relative;
+    overflow: hidden;
+  }
+  .note::after {
+    content: "\201D";
+    position: absolute;
+    right: 14px;
+    top: 2px;
+    font-size: 64px;
+    color: #cfd6e2;
+    font-style: normal;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Ledgerloom changelog</h1>
+    <p class="lede">Release notes for the fictional Ledgerloom bookkeeping tool. Built as a Mirrorframe pseudo-element fixture: badges, timeline dots, underline accents, and decorative marks are all ::before/::after content.</p>
+
+    <h2 class="section-title">March releases</h2>
+
+    <div class="entry">
+      <h2>Multi-currency journals</h2>
+      <p>Journals can now hold entries in any ISO currency, with rates pinned at posting time so historical reports never drift.</p>
+      <span class="tag">CORE</span>
+    </div>
+
+    <div class="entry">
+      <h2>Locked-period warnings</h2>
+      <p>Posting into a closed period now warns before it books, instead of silently landing in the adjustments bucket.</p>
+      <span class="tag">SAFETY</span>
+    </div>
+
+    <div class="entry">
+      <h2>CSV import mapping presets</h2>
+      <p>Column mappings can be saved per bank, so the fourth import of the month takes seconds instead of minutes.</p>
+      <span class="tag">IMPORT</span>
+    </div>
+
+    <div class="note">Ledgerloom is the only bookkeeping tool whose changelog I read for fun. The locked-period warning alone has saved our quarter-close twice.</div>
+  </div>
+</body>
+</html>

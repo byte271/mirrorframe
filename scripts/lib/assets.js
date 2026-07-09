@@ -32,12 +32,42 @@ const EXT_BY_MIME = {
   'video/quicktime': '.mov',
 };
 
+// Extensions are only ever taken from the fixed MIME table or, as a fallback,
+// from the URL path — and the fallback is validated against a strict shape
+// (dot + up to 5 alphanumerics) so a malformed URL or Content-Type can never
+// smuggle path separators or control characters into a written filename.
 function extFor(url, mime) {
-  const m = (mime || '').split(';')[0].trim();
+  const m = (mime || '').split(';')[0].trim().toLowerCase();
   if (EXT_BY_MIME[m]) return EXT_BY_MIME[m];
   const u = url.split(/[?#]/)[0];
   const e = path.extname(u);
-  return e && e.length <= 6 ? e : '.bin';
+  return /^\.[a-z0-9]{1,5}$/i.test(e) ? e.toLowerCase() : '.bin';
+}
+
+// SSRF guard for asset fetches (v0.4). Assets are fetched through the page's
+// own network stack, but the URLs come from page content — a hostile page
+// could point them at loopback/private/link-local services (cloud metadata,
+// local daemons). Policy: only http(s); private/loopback/link-local hosts are
+// allowed ONLY when the captured page itself lives on that same host (local
+// fixture captures), otherwise the fetch is refused and recorded as a miss
+// with the fixed policy reason.
+function isPrivateHost(hostname) {
+  const h = (hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
+  if (h === 'localhost' || h.endsWith('.localhost') || h === '0.0.0.0') return true;
+  if (/^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
+  if (/^169\.254\./.test(h)) return true;                  // link-local + cloud metadata
+  if (h === '::1' || h === '::') return true;
+  if (/^f[cd][0-9a-f]{2}:/.test(h) || /^fe80:/.test(h)) return true; // ULA + link-local v6
+  return false;
+}
+
+function assetUrlAllowed(url, pageUrl) {
+  let u;
+  try { u = new URL(url); } catch (e) { return false; }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+  if (!isPrivateHost(u.hostname)) return true;
+  try { return new URL(pageUrl).hostname === u.hostname; } catch (e) { return false; }
 }
 
 class AssetStore {
@@ -87,6 +117,10 @@ class AssetStore {
 async function fetchInto(store, page, url, timeoutMs = 10000) {
   if (!url || url.startsWith('data:') || url.startsWith('blob:') || store.has(url))
     return store.localFor(url);
+  if (!assetUrlAllowed(url, page.url())) {
+    store.miss(url, REASONS.BLOCKED_BY_POLICY);
+    return null;
+  }
   try {
     const resp = await page.request.get(url, { timeout: timeoutMs });
     if (!resp.ok()) { store.miss(url, REASONS.NETWORK_TIMEOUT); return null; }
@@ -160,4 +194,4 @@ function bestFontUrl(face) {
   return [...face.urls].sort((a, b) => rank(a) - rank(b))[0];
 }
 
-module.exports = { AssetStore, fetchInto, cssUrls, rewriteCssUrls, parseFontFaces, bestFontUrl, ASSET_LIMITS };
+module.exports = { AssetStore, fetchInto, cssUrls, rewriteCssUrls, parseFontFaces, bestFontUrl, ASSET_LIMITS, assetUrlAllowed, isPrivateHost };

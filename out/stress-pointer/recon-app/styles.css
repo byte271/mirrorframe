@@ -1,0 +1,900 @@
+/* bundled web fonts */
+
+
+:root {
+  --color-1: #edeae2;
+  --color-2: #8b8fa3;
+  --color-3: #191d26;
+  --color-4: #e0602f;
+  --color-5: #14181f;
+  --color-6: #101318;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+[data-mf-id="n0"] {
+  display: block;
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: normal;
+  align-items: normal;
+  gap: normal;
+  list-style-type: disc;
+  max-width: none;
+  min-height: 0px;
+  padding: 0px;
+  margin: 0px;
+  margin-top: 0px;
+  margin-right: 0px;
+  margin-bottom: 0px;
+  margin-left: 0px;
+  color: #edeae2;
+  background-color: #101318;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: normal;
+  border-radius: 0px;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+  transition: all;
+  text-decoration-line: none;
+  font-style: normal;
+  text-align: start;
+  flex: 0 1 auto;
+  cursor: auto;
+  border: 0px none rgb(237, 234, 226);
+  z-index: auto;
+  border-top: 0px none rgb(237, 234, 226);
+  border-right: 0px none rgb(237, 234, 226);
+  border-bottom: 0px none rgb(237, 234, 226);
+  border-left: 0px none rgb(237, 234, 226);
+  background-image: none;
+  background-size: auto;
+  background-position: 0% 0%;
+  background-repeat: repeat;
+  object-fit: fill;
+  object-position: 50% 50%;
+  text-transform: none;
+  white-space: normal;
+  overflow: hidden;
+  mix-blend-mode: normal;
+  filter: none;
+  clip-path: none;
+  text-overflow: clip;
+  vertical-align: baseline;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  grid-auto-flow: row;
+  grid-column: auto;
+  grid-row: auto;
+  row-gap: normal;
+  column-gap: normal;
+  justify-self: auto;
+  align-self: auto;
+  align-content: normal;
+  justify-items: normal;
+  aspect-ratio: auto;
+  float: none;
+  order: 0;
+}
+
+[data-mf-id="n6"] {
+  display: block;
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: normal;
+  align-items: normal;
+  gap: normal;
+  list-style-type: disc;
+  max-width: none;
+  min-height: 0px;
+  padding: 0px;
+  margin: 0px 0px 12px;
+  margin-top: 0px;
+  margin-right: 0px;
+  margin-bottom: 12px;
+  margin-left: 0px;
+  color: #edeae2;
+  background-color: rgba(0, 0, 0, 0);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: normal;
+  letter-spacing: normal;
+  border-radius: 0px;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+  transition: all;
+  text-decoration-line: none;
+  font-style: normal;
+  text-align: start;
+  flex: 0 1 auto;
+  cursor: auto;
+  border: 0px none rgb(237, 234, 226);
+  z-index: auto;
+  border-top: 0px none rgb(237, 234, 226);
+  border-right: 0px none rgb(237, 234, 226);
+  border-bottom: 0px none rgb(237, 234, 226);
+  border-left: 0px none rgb(237, 234, 226);
+  background-image: none;
+  background-size: auto;
+  background-position: 0% 0%;
+  background-repeat: repeat;
+  object-fit: fill;
+  object-position: 50% 50%;
+  text-transform: none;
+  white-space: normal;
+  overflow: visible;
+  mix-blend-mode: normal;
+  filter: none;
+  clip-path: none;
+  text-overflow: clip;
+  vertical-align: baseline;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  grid-auto-flow: row;
+  grid-column: auto;
+  grid-row: auto;
+  row-gap: normal;
+  column-gap: normal;
+  justify-self: auto;
+  align-self: auto;
+  align-content: normal;
+  justify-items: normal;
+  aspect-ratio: auto;
+  float: none;
+  order: 0;
+}
+
+[data-mf-id="n7"] {
+  display: block;
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: normal;
+  align-items: normal;
+  gap: normal;
+  list-style-type: disc;
+  max-width: none;
+  min-height: 0px;
+  padding: 0px;
+  margin: 0px;
+  margin-top: 0px;
+  margin-right: 0px;
+  margin-bottom: 0px;
+  margin-left: 0px;
+  color: #8b8fa3;
+  background-color: rgba(0, 0, 0, 0);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 22.5px;
+  letter-spacing: normal;
+  border-radius: 0px;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+  transition: all;
+  text-decoration-line: none;
+  font-style: normal;
+  text-align: start;
+  flex: 0 1 auto;
+  cursor: auto;
+  border: 0px none rgb(139, 143, 163);
+  z-index: auto;
+  border-top: 0px none rgb(139, 143, 163);
+  border-right: 0px none rgb(139, 143, 163);
+  border-bottom: 0px none rgb(139, 143, 163);
+  border-left: 0px none rgb(139, 143, 163);
+  background-image: none;
+  background-size: auto;
+  background-position: 0% 0%;
+  background-repeat: repeat;
+  object-fit: fill;
+  object-position: 50% 50%;
+  text-transform: none;
+  white-space: normal;
+  overflow: visible;
+  mix-blend-mode: normal;
+  filter: none;
+  clip-path: none;
+  text-overflow: clip;
+  vertical-align: baseline;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  grid-auto-flow: row;
+  grid-column: auto;
+  grid-row: auto;
+  row-gap: normal;
+  column-gap: normal;
+  justify-self: auto;
+  align-self: auto;
+  align-content: normal;
+  justify-items: normal;
+  aspect-ratio: auto;
+  float: none;
+  order: 0;
+}
+
+[data-mf-id="n9"] {
+  display: inline;
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: normal;
+  align-items: normal;
+  gap: normal;
+  list-style-type: disc;
+  max-width: none;
+  min-height: 0px;
+  padding: 0px;
+  margin: 0px;
+  margin-top: 0px;
+  margin-right: 0px;
+  margin-bottom: 0px;
+  margin-left: 0px;
+  color: #e0602f;
+  background-color: rgba(0, 0, 0, 0);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: normal;
+  letter-spacing: normal;
+  border-radius: 0px;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+  transition: all;
+  text-decoration-line: none;
+  font-style: normal;
+  text-align: start;
+  flex: 0 1 auto;
+  cursor: auto;
+  border: 0px none rgb(224, 96, 47);
+  z-index: auto;
+  border-top: 0px none rgb(224, 96, 47);
+  border-right: 0px none rgb(224, 96, 47);
+  border-bottom: 0px none rgb(224, 96, 47);
+  border-left: 0px none rgb(224, 96, 47);
+  background-image: none;
+  background-size: auto;
+  background-position: 0% 0%;
+  background-repeat: repeat;
+  object-fit: fill;
+  object-position: 50% 50%;
+  text-transform: none;
+  white-space: normal;
+  overflow: visible;
+  mix-blend-mode: normal;
+  filter: none;
+  clip-path: none;
+  text-overflow: clip;
+  vertical-align: baseline;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  grid-auto-flow: row;
+  grid-column: auto;
+  grid-row: auto;
+  row-gap: normal;
+  column-gap: normal;
+  justify-self: auto;
+  align-self: auto;
+  align-content: normal;
+  justify-items: normal;
+  aspect-ratio: auto;
+  float: none;
+  order: 0;
+}
+
+[data-mf-id="n10"] {
+  display: block;
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: normal;
+  align-items: normal;
+  gap: normal;
+  list-style-type: disc;
+  max-width: none;
+  min-height: 0px;
+  padding: 0px;
+  margin: 8px 0px 0px;
+  margin-top: 8px;
+  margin-right: 0px;
+  margin-bottom: 0px;
+  margin-left: 0px;
+  color: #8b8fa3;
+  background-color: rgba(0, 0, 0, 0);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: normal;
+  border-radius: 0px;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+  transition: all;
+  text-decoration-line: none;
+  font-style: normal;
+  text-align: start;
+  flex: 0 1 auto;
+  cursor: auto;
+  border: 0px none rgb(139, 143, 163);
+  z-index: auto;
+  border-top: 0px none rgb(139, 143, 163);
+  border-right: 0px none rgb(139, 143, 163);
+  border-bottom: 0px none rgb(139, 143, 163);
+  border-left: 0px none rgb(139, 143, 163);
+  background-image: none;
+  background-size: auto;
+  background-position: 0% 0%;
+  background-repeat: repeat;
+  object-fit: fill;
+  object-position: 50% 50%;
+  text-transform: none;
+  white-space: normal;
+  overflow: visible;
+  mix-blend-mode: normal;
+  filter: none;
+  clip-path: none;
+  text-overflow: clip;
+  vertical-align: baseline;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  grid-auto-flow: row;
+  grid-column: auto;
+  grid-row: auto;
+  row-gap: normal;
+  column-gap: normal;
+  justify-self: auto;
+  align-self: auto;
+  align-content: normal;
+  justify-items: normal;
+  aspect-ratio: auto;
+  float: none;
+  order: 0;
+}
+
+.stage {
+  display: flex;
+  position: relative;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  left: 0px;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: center;
+  gap: 64px;
+  list-style-type: disc;
+  max-width: none;
+  min-height: 0px;
+  padding: 0px;
+  margin: 0px;
+  margin-top: 0px;
+  margin-right: 0px;
+  margin-bottom: 0px;
+  margin-left: 0px;
+  color: #edeae2;
+  background-color: rgba(0, 0, 0, 0);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: normal;
+  border-radius: 0px;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+  transition: all;
+  text-decoration-line: none;
+  font-style: normal;
+  text-align: start;
+  flex: 0 1 auto;
+  cursor: auto;
+  border: 0px none rgb(237, 234, 226);
+  z-index: auto;
+  border-top: 0px none rgb(237, 234, 226);
+  border-right: 0px none rgb(237, 234, 226);
+  border-bottom: 0px none rgb(237, 234, 226);
+  border-left: 0px none rgb(237, 234, 226);
+  background-image: none;
+  background-size: auto;
+  background-position: 0% 0%;
+  background-repeat: repeat;
+  object-fit: fill;
+  object-position: 50% 50%;
+  text-transform: none;
+  white-space: normal;
+  overflow: visible;
+  mix-blend-mode: normal;
+  filter: none;
+  clip-path: none;
+  text-overflow: clip;
+  vertical-align: baseline;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  grid-auto-flow: row;
+  grid-column: auto;
+  grid-row: auto;
+  row-gap: 64px;
+  column-gap: 64px;
+  justify-self: auto;
+  align-self: auto;
+  align-content: normal;
+  justify-items: normal;
+  aspect-ratio: auto;
+  float: none;
+  order: 0;
+}
+
+.layer.layer-back {
+  display: block;
+  position: absolute;
+  top: 96px;
+  right: 837.609px;
+  bottom: 364px;
+  left: 102.391px;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: normal;
+  align-items: normal;
+  gap: normal;
+  list-style-type: disc;
+  max-width: none;
+  min-height: 0px;
+  padding: 0px;
+  margin: 0px;
+  margin-top: 0px;
+  margin-right: 0px;
+  margin-bottom: 0px;
+  margin-left: 0px;
+  color: #edeae2;
+  background-color: rgba(0, 0, 0, 0);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: normal;
+  border-radius: 50%;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+  transition: all;
+  text-decoration-line: none;
+  font-style: normal;
+  text-align: start;
+  flex: 0 1 auto;
+  cursor: auto;
+  border: 0px none rgb(237, 234, 226);
+  z-index: auto;
+  border-top: 0px none rgb(237, 234, 226);
+  border-right: 0px none rgb(237, 234, 226);
+  border-bottom: 0px none rgb(237, 234, 226);
+  border-left: 0px none rgb(237, 234, 226);
+  background-image: radial-gradient(circle at 35% 35%, rgb(29, 44, 74), rgb(19, 26, 43));
+  background-size: auto;
+  background-position: 0% 0%;
+  background-repeat: repeat;
+  object-fit: fill;
+  object-position: 50% 50%;
+  text-transform: none;
+  white-space: normal;
+  overflow: visible;
+  mix-blend-mode: normal;
+  filter: none;
+  clip-path: none;
+  text-overflow: clip;
+  vertical-align: baseline;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  grid-auto-flow: row;
+  grid-column: auto;
+  grid-row: auto;
+  row-gap: normal;
+  column-gap: normal;
+  justify-self: auto;
+  align-self: auto;
+  align-content: normal;
+  justify-items: normal;
+  aspect-ratio: auto;
+  float: none;
+  order: 0;
+}
+
+.layer.layer-mid {
+  display: block;
+  position: absolute;
+  top: 144px;
+  right: 153.594px;
+  bottom: 456px;
+  left: 926.406px;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: normal;
+  align-items: normal;
+  gap: normal;
+  list-style-type: disc;
+  max-width: none;
+  min-height: 0px;
+  padding: 0px;
+  margin: 0px;
+  margin-top: 0px;
+  margin-right: 0px;
+  margin-bottom: 0px;
+  margin-left: 0px;
+  color: #edeae2;
+  background-color: rgba(0, 0, 0, 0);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: normal;
+  border-radius: 50%;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+  transition: all;
+  text-decoration-line: none;
+  font-style: normal;
+  text-align: start;
+  flex: 0 1 auto;
+  cursor: auto;
+  border: 0px none rgb(237, 234, 226);
+  z-index: auto;
+  border-top: 0px none rgb(237, 234, 226);
+  border-right: 0px none rgb(237, 234, 226);
+  border-bottom: 0px none rgb(237, 234, 226);
+  border-left: 0px none rgb(237, 234, 226);
+  background-image: radial-gradient(circle at 40% 30%, rgb(58, 43, 24), rgb(36, 26, 16));
+  background-size: auto;
+  background-position: 0% 0%;
+  background-repeat: repeat;
+  object-fit: fill;
+  object-position: 50% 50%;
+  text-transform: none;
+  white-space: normal;
+  overflow: visible;
+  mix-blend-mode: normal;
+  filter: none;
+  clip-path: none;
+  text-overflow: clip;
+  vertical-align: baseline;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  grid-auto-flow: row;
+  grid-column: auto;
+  grid-row: auto;
+  row-gap: normal;
+  column-gap: normal;
+  justify-self: auto;
+  align-self: auto;
+  align-content: normal;
+  justify-items: normal;
+  aspect-ratio: auto;
+  float: none;
+  order: 0;
+}
+
+.layer.layer-front {
+  display: block;
+  position: absolute;
+  top: 568px;
+  right: 929.609px;
+  bottom: 112px;
+  left: 230.391px;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: normal;
+  align-items: normal;
+  gap: normal;
+  list-style-type: disc;
+  max-width: none;
+  min-height: 0px;
+  padding: 0px;
+  margin: 0px;
+  margin-top: 0px;
+  margin-right: 0px;
+  margin-bottom: 0px;
+  margin-left: 0px;
+  color: #edeae2;
+  background-color: rgba(0, 0, 0, 0);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: normal;
+  border-radius: 50%;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+  transition: all;
+  text-decoration-line: none;
+  font-style: normal;
+  text-align: start;
+  flex: 0 1 auto;
+  cursor: auto;
+  border: 0px none rgb(237, 234, 226);
+  z-index: auto;
+  border-top: 0px none rgb(237, 234, 226);
+  border-right: 0px none rgb(237, 234, 226);
+  border-bottom: 0px none rgb(237, 234, 226);
+  border-left: 0px none rgb(237, 234, 226);
+  background-image: radial-gradient(circle at 40% 35%, rgb(224, 96, 47), rgb(138, 58, 28));
+  background-size: auto;
+  background-position: 0% 0%;
+  background-repeat: repeat;
+  object-fit: fill;
+  object-position: 50% 50%;
+  text-transform: none;
+  white-space: normal;
+  overflow: visible;
+  mix-blend-mode: normal;
+  filter: none;
+  clip-path: none;
+  text-overflow: clip;
+  vertical-align: baseline;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  grid-auto-flow: row;
+  grid-column: auto;
+  grid-row: auto;
+  row-gap: normal;
+  column-gap: normal;
+  justify-self: auto;
+  align-self: auto;
+  align-content: normal;
+  justify-items: normal;
+  aspect-ratio: auto;
+  float: none;
+  order: 0;
+}
+
+.tilt-card {
+  display: block;
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: normal;
+  align-items: normal;
+  gap: normal;
+  list-style-type: disc;
+  max-width: none;
+  min-height: auto;
+  padding: 36px 32px;
+  margin: 0px;
+  margin-top: 0px;
+  margin-right: 0px;
+  margin-bottom: 0px;
+  margin-left: 0px;
+  color: #edeae2;
+  background-color: #191d26;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: normal;
+  border-radius: 14px;
+  box-shadow: none;
+  opacity: 1;
+  transform: none;
+  transition: all;
+  text-decoration-line: none;
+  font-style: normal;
+  text-align: start;
+  flex: 0 1 auto;
+  cursor: auto;
+  border: 1px solid rgb(42, 48, 64);
+  z-index: auto;
+  border-top: 1px solid rgb(42, 48, 64);
+  border-right: 1px solid rgb(42, 48, 64);
+  border-bottom: 1px solid rgb(42, 48, 64);
+  border-left: 1px solid rgb(42, 48, 64);
+  background-image: none;
+  background-size: auto;
+  background-position: 0% 0%;
+  background-repeat: repeat;
+  object-fit: fill;
+  object-position: 50% 50%;
+  text-transform: none;
+  white-space: normal;
+  overflow: visible;
+  mix-blend-mode: normal;
+  filter: none;
+  clip-path: none;
+  text-overflow: clip;
+  vertical-align: baseline;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  grid-auto-flow: row;
+  grid-column: auto;
+  grid-row: auto;
+  row-gap: normal;
+  column-gap: normal;
+  justify-self: auto;
+  align-self: auto;
+  align-content: normal;
+  justify-items: normal;
+  aspect-ratio: auto;
+  float: none;
+  order: 0;
+}
+
+.glide-chip {
+  display: block;
+  position: static;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: normal;
+  align-items: normal;
+  gap: normal;
+  list-style-type: disc;
+  max-width: none;
+  min-height: auto;
+  padding: 24px;
+  margin: 0px;
+  margin-top: 0px;
+  margin-right: 0px;
+  margin-bottom: 0px;
+  margin-left: 0px;
+  color: #edeae2;
+  background-color: #14181f;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: normal;
+  letter-spacing: normal;
+  border-radius: 10px;
+  box-shadow: none;
+  opacity: 1;
+  transform: matrix(1, 0, 0, 1, 0, 0);
+  transition: all;
+  text-decoration-line: none;
+  font-style: normal;
+  text-align: start;
+  flex: 0 1 auto;
+  cursor: auto;
+  border: 1px solid rgb(224, 96, 47);
+  z-index: auto;
+  border-top: 1px solid rgb(224, 96, 47);
+  border-right: 1px solid rgb(224, 96, 47);
+  border-bottom: 1px solid rgb(224, 96, 47);
+  border-left: 1px solid rgb(224, 96, 47);
+  background-image: none;
+  background-size: auto;
+  background-position: 0% 0%;
+  background-repeat: repeat;
+  object-fit: fill;
+  object-position: 50% 50%;
+  text-transform: none;
+  white-space: normal;
+  overflow: visible;
+  mix-blend-mode: normal;
+  filter: none;
+  clip-path: none;
+  text-overflow: clip;
+  vertical-align: baseline;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  grid-auto-flow: row;
+  grid-column: auto;
+  grid-row: auto;
+  row-gap: normal;
+  column-gap: normal;
+  justify-self: auto;
+  align-self: auto;
+  align-content: normal;
+  justify-items: normal;
+  aspect-ratio: auto;
+  float: none;
+  order: 0;
+}
+
+/* media sizing */
+
+
+/* empty-leaf shape sizing */
+[data-mf-id="n2"] {
+  width: 340px;
+  height: 340px;
+}
+
+[data-mf-id="n3"] {
+  width: 200px;
+  height: 200px;
+}
+
+[data-mf-id="n4"] {
+  width: 120px;
+  height: 120px;
+}
+
+/* abs-positioned container heights */
+
+
+/* per-node overrides (context-driven divergence) */
+
+
+/* recovered scroll-reveal */
+
+
+/* recovered interaction states */
+
+
+/* recovered hover states */
+
+
+/* recovered JS-driven hover (compiled to CSS) */
+
+
+/* recovered keyframes */
+
+
+/* layout convergence pass 1: captured computed sizes baked for drifted nodes */
+[data-mf-id="n0"] {
+  height: 800px !important;
+}
+
+[data-mf-id="n1"] {
+  height: 800px !important;
+}
+
+[data-mf-id="n5"] {
+  height: 202px !important;
+  width: 300px !important;
+}
+
+[data-mf-id="n6"] {
+  width: 234px !important;
+}
+
+[data-mf-id="n7"] {
+  height: 90px !important;
+  width: 234px !important;
+}
+
+[data-mf-id="n8"] {
+  height: 124px !important;
+  width: 220px !important;
+}
+
+[data-mf-id="n10"] {
+  height: 48px !important;
+  width: 170px !important;
+}
